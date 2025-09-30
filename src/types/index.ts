@@ -57,3 +57,10 @@ export interface User {
   username: string;
   role: 'admin' | 'user';
 }
+
+export interface Admin {
+  id: number;
+  username: string;
+  password_hash: string;
+  created_at: string;
+}

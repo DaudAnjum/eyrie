@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import db from "@/lib/db";
 import { verifyPassword, generateToken } from "@/lib/auth";
+import { Admin } from "@/types";
 
 export async function POST(req: Request) {
   try {
@@ -16,7 +17,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing credentials" }, { status: 400 });
     }
 
-    const admin = db.prepare("SELECT * FROM admins WHERE username = ?").get(username);
+    const admin = db.prepare("SELECT * FROM admins WHERE username = ?").get(username) as Admin | undefined;
 
     console.log("📂 DB result:", admin);
 
