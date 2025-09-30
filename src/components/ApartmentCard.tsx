@@ -162,30 +162,10 @@ const ApartmentCard: React.FC<ApartmentCardProps> = ({
           <div className="flex items-center space-x-2">
             <FaRuler className="text-accent text-sm" />
             <span className="text-sm text-gray-600">
-              {formatArea(apartment.area)}
+              {apartment.area && formatArea(apartment.area)}
             </span>
           </div>
         </div>
-
-        {/* Payment Options Preview */}
-        {apartment.installmentOptions &&
-          apartment.installmentOptions.length > 0 && (
-            <div className="border-t border-gray-200 pt-4">
-              <div className="text-sm text-gray-600 mb-2">Starting from:</div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Monthly Payment</span>
-                <span className="font-semibold text-primary">
-                  {formatPrice(
-                    Math.min(
-                      ...apartment.installmentOptions.map(
-                        (opt) => opt.monthlyAmount
-                      )
-                    )
-                  )}
-                </span>
-              </div>
-            </div>
-          )}
 
         {/* View Details Button */}
         {!isCommercial && (
