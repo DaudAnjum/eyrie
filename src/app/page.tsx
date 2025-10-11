@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { floors, sectionPlan } from "@/data/buildingData";
@@ -9,9 +9,24 @@ import FloorPlanViewer from "@/components/FloorPlanViewer";
 import ApartmentModal from "@/components/ApartmentModal";
 import { FaTimes, FaPlus, FaMinus } from "react-icons/fa";
 
+console.log("🚨 FloorPlanViewer RENDERED");
+
 export default function FloorPlansPage() {
-  const [selectedFloorId, setSelectedFloorId] = useState<string>(floors[2].id); // Default to ground floor
-  const { selectedApartment, setSelectedApartment } = useAppStore();
+  const [selectedFloorId, setSelectedFloorId] = useState<string>(floors[5].id);
+  const {
+    selectedApartment,
+    setSelectedApartment,
+    apartments,
+    fetchApartments,
+  } = useAppStore();
+
+  useEffect(() => {
+    console.log("🟡 FloorPlanViewer mounted. Current apartments:", apartments);
+    if (apartments.length === 0) {
+      console.log("🏠 Fetching apartments from Cached data...");
+      fetchApartments();
+    }
+  }, [fetchApartments, apartments]);
 
   const selectedFloor = floors.find((floor) => floor.id === selectedFloorId);
 
@@ -51,10 +66,10 @@ export default function FloorPlansPage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Floor Navigation Sidebar */}
           <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="lg:col-span-1"
+            initial={{ x: "-100%", opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="sidebar"
           >
             <div className="bg-white rounded-lg shadow-lg p-6 sticky top-24 h-[92vh] overflow-y-auto">
               <h3 className="text-xl font-semibold text-primary mb-6">
@@ -64,7 +79,11 @@ export default function FloorPlansPage() {
               <div className="space-y-2">
                 <div className="space-y-2">
                   {floors.map((floor) => {
-                    let unitLabel = `${floor.apartments.length} apartments`;
+                    let unitLabel = `${
+                      apartments.filter((apt) => apt.floorId === floor.id)
+                        .length
+                    } apartments`;
+                    console.log("🏢 Floor:", floor.name, "Units:", unitLabel);
 
                     // Special cases
                     if (floor.name.toLowerCase().includes("basement")) {
@@ -72,11 +91,17 @@ export default function FloorPlansPage() {
                     } else if (
                       floor.name.toLowerCase().includes("lower ground")
                     ) {
-                      unitLabel = `${floor.apartments.length} shops`;
+                      unitLabel = `${
+                        apartments.filter((apt) => apt.floorId === floor.id)
+                          .length
+                      } shops`;
                     } else if (
                       floor.name.toLowerCase().includes("ground floor")
                     ) {
-                      unitLabel = `${floor.apartments.length} shops`;
+                      unitLabel = `${
+                        apartments.filter((apt) => apt.floorId === floor.id)
+                          .length
+                      } shops`;
                     } else if (
                       floor.name.toLowerCase().includes("first floor")
                     ) {
@@ -129,69 +154,6 @@ export default function FloorPlansPage() {
                       className="object-cover hover:scale-105 transition-transform duration-300"
                     />
                   </div>
-
-                  {/* Popup */}
-                  <AnimatePresence>
-                    {isOpen && (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center"
-                        onClick={() => setIsOpen(false)}
-                      >
-                        <div
-                          ref={dragRef}
-                          className="relative w-full max-w-5xl h-[80vh] overflow-hidden flex items-center justify-center"
-                          onClick={(e) => e.stopPropagation()} // prevent close on image click
-                        >
-                          {/* Zoomable + draggable image */}
-                          <motion.div
-                            drag={zoom > 1 ? true : false}
-                            dragConstraints={dragRef}
-                            dragMomentum={false}
-                            style={{
-                              x: position.x,
-                              y: position.y,
-                              scale: zoom,
-                            }}
-                            className="w-full h-full relative flex items-center justify-center"
-                          >
-                            <Image
-                              src={sectionPlan}
-                              alt="Building Section A-A"
-                              fill
-                              className="object-contain pointer-events-none"
-                            />
-                          </motion.div>
-
-                          {/* Close button - stays top right */}
-                          <button
-                            onClick={() => setIsOpen(false)}
-                            className="absolute top-4 right-4 bg-primary bg-opacity-70 text-white text-3xl p-2 rounded-full hover:bg-opacity-90 hover:bg-white hover:text-primary"
-                          >
-                            <FaTimes />
-                          </button>
-
-                          {/* Zoom controls - top center, independent of zoom */}
-                          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 flex space-x-3 bg-primary bg-opacity-70 p-2 rounded-lg">
-                            <button
-                              onClick={handleZoomOut}
-                              className="p-2 rounded-full text-white bg-white bg-opacity-20 hover:bg-opacity-30"
-                            >
-                              <FaMinus />
-                            </button>
-                            <button
-                              onClick={handleZoomIn}
-                              className="p-2 rounded-full text-white bg-white bg-opacity-20 hover:bg-opacity-30"
-                            >
-                              <FaPlus />
-                            </button>
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </div>
                 <p className="text-sm text-primary mt-2">
                   Complete building cross-section view
@@ -202,12 +164,24 @@ export default function FloorPlansPage() {
 
           {/* Floor Plan Viewer */}
           <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ x: "100%", opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.4 }}
             className="lg:col-span-3"
           >
-            {selectedFloor && <FloorPlanViewer floor={selectedFloor} />}
+            <AnimatePresence mode="wait">
+              {selectedFloor && (
+                <motion.div
+                  key={selectedFloor.id} // Ensures animation when switching floors
+                  initial={{ x: "100%", opacity: 0 }} // Slide in from right
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: "100%", opacity: 0 }} // Slide out when unselected
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                >
+                  <FloorPlanViewer floor={selectedFloor} />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         </div>
 
@@ -246,6 +220,68 @@ export default function FloorPlansPage() {
           onClose={() => setSelectedApartment(null)}
         />
       )}
+      {/* Popup */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center"
+            onClick={() => setIsOpen(false)}
+          >
+            <div
+              ref={dragRef}
+              className="relative z-[9999] w-full max-w-5xl h-[80vh] flex items-center justify-center"
+              onClick={(e) => e.stopPropagation()} // prevent close on image click
+            >
+              {/* Zoomable + draggable image */}
+              <motion.div
+                drag={zoom > 1 ? true : false}
+                dragConstraints={dragRef}
+                dragMomentum={false}
+                style={{
+                  x: position.x,
+                  y: position.y,
+                  scale: zoom,
+                }}
+                className="w-full h-full relative flex items-center justify-center"
+              >
+                <Image
+                  src={sectionPlan}
+                  alt="Building Section A-A"
+                  fill
+                  className="object-contain pointer-events-none"
+                />
+              </motion.div>
+
+              {/* Close button - stays top right */}
+              <button
+                onClick={() => setIsOpen(false)}
+                className="absolute top-4 right-4 bg-primary bg-opacity-70 text-white text-3xl p-2 rounded-full hover:bg-opacity-90 hover:bg-white hover:text-primary"
+              >
+                <FaTimes />
+              </button>
+
+              {/* Zoom controls - top center, independent of zoom */}
+              <div className="absolute top-4 left-1/2 transform -translate-x-1/2 flex space-x-3 bg-primary bg-opacity-70 p-2 rounded-lg">
+                <button
+                  onClick={handleZoomOut}
+                  className="p-2 rounded-full text-white bg-white bg-opacity-20 hover:bg-opacity-30"
+                >
+                  <FaMinus />
+                </button>
+                <button
+                  onClick={handleZoomIn}
+                  className="p-2 rounded-full text-white bg-white bg-opacity-20 hover:bg-opacity-30"
+                >
+                  <FaPlus />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -8,9 +8,7 @@ export interface Apartment {
   area?: number;
   price: number;
   status: 'available' | 'sold';
-  layout?: string;
   renders?: string[];
-  floorPlan?: string;
   installmentOptions?: installmentOptions;
   coordinates?: {
     x: number;

@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAppStore } from "@/lib/store";
+import { supabase } from "@/lib/supabaseClient";
+import { Apartment } from "@/types";
 import { floors } from "@/data/buildingData";
 
 export default function AdminDashboard({ user }: { user: any }) {
-  const { apartments, updateApartmentStatus } = useAppStore();
+  const { apartments, updateApartmentStatus, fetchApartments } = useAppStore();
+  // const [setApartments] = useState<Apartment[]>([]);
+  // const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<
     "all" | "available" | "sold"
@@ -14,13 +18,39 @@ export default function AdminDashboard({ user }: { user: any }) {
   const [selectedFloor, setSelectedFloor] = useState<string>("all");
 
   // Get all apartments (use store data if available, fallback to static data)
-  const allApartments =
-    apartments.length > 0
-      ? apartments
-      : floors.flatMap((floor) => floor.apartments);
+  // const allApartments =
+  // apartments.length > 0
+  //   ? apartments
+  //   : floors.flatMap((floor) => floor.apartments);
+
+  useEffect(() => {
+    if (apartments.length === 0) {
+      console.log("🔍 Fetching apartments from Cached data (store)...");
+      fetchApartments();
+    }
+  }, [fetchApartments]);
+
+  // useEffect(() => {
+  //   async function fetchApartments() {
+  //     setLoading(true);
+  //     const { data, error } = await supabase.from("apartments").select("*");
+  //     console.log("----------Fetched apartments:", data);
+
+  //     if (error) {
+  //       console.error("Error fetching apartments:", error);
+  //       setApartments([]);
+  //     } else if (data) {
+  //       console.log("Fetched apartments:", data);
+  //       setApartments(data);
+  //     }
+  //     setLoading(false);
+  //   }
+
+  //   fetchApartments();
+  // }, []);
 
   // Filter apartments based on search, status, and selected floor
-  const filteredApartments = allApartments.filter((apartment) => {
+  const filteredApartments = apartments.filter((apartment) => {
     const matchesSearch =
       apartment.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
       apartment.type.toLowerCase().includes(searchTerm.toLowerCase());
@@ -31,17 +61,64 @@ export default function AdminDashboard({ user }: { user: any }) {
     return matchesSearch && matchesStatus && matchesFloor;
   });
 
-  const handleStatusChange = (
+  // const handleStatusChange = (
+  //   apartmentId: string,
+  //   newStatus: "available" | "sold"
+  // ) => {
+  //   updateApartmentStatus(apartmentId, newStatus);
+  // };
+
+  const handleStatusChange = async (
     apartmentId: string,
     newStatus: "available" | "sold"
   ) => {
-    updateApartmentStatus(apartmentId, newStatus);
+    const { error } = await supabase
+      .from("apartments")
+      .update({ status: newStatus })
+      .eq("id", apartmentId);
+
+    if (error) {
+      console.error("Error updating status:", error);
+    } else {
+      console.log(
+        `✅ Status updated for apartment ${apartmentId}: ${newStatus}`
+      );
+      updateApartmentStatus(apartmentId, newStatus); // ✅ update via global store
+
+      await fetch("/api/apartments?invalidate=1");
+    }
   };
 
+  // const handleStatusChange = async (
+  //   apartmentId: string,
+  //   newStatus: "available" | "sold"
+  // ) => {
+  //   const { error } = await supabase
+  //     .from("apartments")
+  //     .update({ status: newStatus })
+  //     .eq("id", apartmentId);
+
+  //   if (error) {
+  //     console.error("Error updating status:", error);
+  //   } else {
+  //     setApartments((prev) =>
+  //       prev.map((apt) =>
+  //         apt.id === apartmentId ? { ...apt, status: newStatus } : apt
+  //       )
+  //     );
+  //   }
+  // };
+
+  // const stats = {
+  //   total: allApartments.length,
+  //   available: allApartments.filter((apt) => apt.status === "available").length,
+  //   sold: allApartments.filter((apt) => apt.status === "sold").length,
+  // };
+
   const stats = {
-    total: allApartments.length,
-    available: allApartments.filter((apt) => apt.status === "available").length,
-    sold: allApartments.filter((apt) => apt.status === "sold").length,
+    total: apartments.length,
+    available: apartments.filter((apt) => apt.status === "available").length,
+    sold: apartments.filter((apt) => apt.status === "sold").length,
   };
 
   const getFloorName = (floorId: string) => {
@@ -159,7 +236,7 @@ export default function AdminDashboard({ user }: { user: any }) {
             </div>
           </div>
           <div className="mt-4 text-sm text-gray-600">
-            Showing {filteredApartments.length} of {allApartments.length}{" "}
+            Showing {filteredApartments.length} of {apartments.length}{" "}
             apartments
           </div>
         </motion.div>
@@ -175,7 +252,7 @@ export default function AdminDashboard({ user }: { user: any }) {
             <h3 className="font-semibold text-primary">Quick Actions:</h3>
             <button
               onClick={() => {
-                const availableApts = allApartments.filter(
+                const availableApts = apartments.filter(
                   (apt) => apt.status === "available"
                 );
                 availableApts.forEach((apt) =>
@@ -188,7 +265,7 @@ export default function AdminDashboard({ user }: { user: any }) {
             </button>
             <button
               onClick={() => {
-                const soldApts = allApartments.filter(
+                const soldApts = apartments.filter(
                   (apt) => apt.status === "sold"
                 );
                 soldApts.forEach((apt) =>

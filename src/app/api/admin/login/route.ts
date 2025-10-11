@@ -2,13 +2,21 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
-import db from "@/lib/db";
+import { supabase } from "@/lib/supabaseClient";
 import { verifyPassword, generateToken } from "@/lib/auth";
 import { Admin } from "@/types";
 
 export async function POST(req: Request) {
   try {
     const { username, password } = await req.json();
+
+    // const admin = db.prepare("SELECT * FROM admins WHERE username = ?").get(username) as Admin | undefined;
+
+    const { data: admin, error } = await supabase
+      .from("admins")
+      .select("*")
+      .eq("username", username)
+      .single();
 
     console.log("🔎 Login attempt:", username);
 
@@ -17,11 +25,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing credentials" }, { status: 400 });
     }
 
-    const admin = db.prepare("SELECT * FROM admins WHERE username = ?").get(username) as Admin | undefined;
-
     console.log("📂 DB result:", admin);
 
-    if (!admin) {
+    if (error || !admin) {
       console.log("❌ No admin found with username:", username);
       return NextResponse.json({ error: "Incorrect username" }, { status: 401 });
     }

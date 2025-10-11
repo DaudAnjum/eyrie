@@ -4,9 +4,9 @@
 @tailwind utilities;
 
 :root {
-  --color-primary: #96796E;
+  --color-primary: #333;
   --color-secondary: #ADA4A1;
-  --color-accent: #000000;
+  --color-accent: #b78f34;
   --color-success: #2fb168;
   --color-sold: #c15145;
   --color-background: #F6F1EA;
@@ -50,7 +50,7 @@ a {
 }
 
 .btn-primary {
-  @apply bg-accent text-white hover:bg-primary;
+  @apply bg-primary text-white hover:bg-primary;
 }
 
 .btn-secondary {
