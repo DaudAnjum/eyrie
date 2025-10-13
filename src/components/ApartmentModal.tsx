@@ -105,7 +105,7 @@ const ApartmentModal: React.FC<ApartmentModalProps> = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 glass"
         onClick={handleBackdropClick}
         role="presentation"
       >
@@ -116,14 +116,17 @@ const ApartmentModal: React.FC<ApartmentModalProps> = ({
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+          className="rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto glass-dark"
         >
           {/* Header */}
-          <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
+          <div
+            className="sticky top-0 border-b border-gray-200 p-6 flex justify-between items-center text-background glass-dark"
+            style={{ zIndex: 100 }}
+          >
             <div>
               <h2
                 id={`apartment-modal-title-${apartment.id}`}
-                className="text-2xl font-bold text-primary"
+                className="text-2xl font-bold"
               >
                 {apartment.number} • {apartment.type} •{" "}
                 {capitalize(apartment.floorId)} Floor
@@ -141,18 +144,18 @@ const ApartmentModal: React.FC<ApartmentModalProps> = ({
             <button
               onClick={onClose}
               aria-label="Close apartment details"
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="p-2 hover:bg-background hover:text-primary rounded-full transition-colors"
             >
-              <FaTimes className="w-5 h-5 text-gray-500" />
+              <FaTimes className="w-5 h-5" />
             </button>
           </div>
 
           {/* Body */}
-          <div className="p-6">
+          <div className="p-6  text-background">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Details */}
               <div>
-                <h3 className="text-xl font-semibold text-primary mb-4">
+                <h3 className="text-xl font-semibold mb-4">
                   {isCommercial ? "Unit Details" : "Apartment Details"}
                 </h3>
                 <div className="space-y-4">
@@ -192,7 +195,7 @@ const ApartmentModal: React.FC<ApartmentModalProps> = ({
               {/* Payment Options */}
               {!isCommercial && (
                 <div>
-                  <h3 className="text-xl font-semibold text-primary mb-4">
+                  <h3 className="text-xl font-semibold mb-4">
                     Payment Options
                   </h3>
 
@@ -204,7 +207,7 @@ const ApartmentModal: React.FC<ApartmentModalProps> = ({
                             key={idx}
                             className="border border-gray-200 rounded-lg p-4"
                           >
-                            <h4 className="font-semibold text-primary mb-2">
+                            <h4 className="font-semibold mb-2">
                               {opt.duration} Month Plan
                             </h4>
                             <div className="space-y-2 text-sm">
@@ -237,9 +240,6 @@ const ApartmentModal: React.FC<ApartmentModalProps> = ({
                     </div>
                   ) : apartment.installmentOptions ? (
                     <div className="border border-gray-200 rounded-lg p-4">
-                      <h4 className="font-semibold text-primary mb-2">
-                        Payment Plan
-                      </h4>
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
                           <span>Booking:</span>
@@ -309,7 +309,7 @@ const ApartmentModal: React.FC<ApartmentModalProps> = ({
               apartment.renders &&
               apartment.renders.length > 0 && (
                 <div className="mt-8 flex flex-col items-center">
-                  <h3 className="text-xl font-semibold text-primary mb-4">
+                  <h3 className="text-xl font-semibold mb-4">
                     {apartment.renders.length > 1
                       ? "Image Gallery"
                       : "Render & Image"}
@@ -336,7 +336,7 @@ const ApartmentModal: React.FC<ApartmentModalProps> = ({
                     {apartment.renders.length > 1 && (
                       <>
                         <button
-                          className="absolute left-2 top-1/2 -translate-y-1/2 bg-white p-2 rounded-full shadow hover:bg-gray-200"
+                          className="absolute left-2 top-1/2 -translate-y-1/2 bg-primary p-2 rounded-full shadow hover:bg-gray-200 hover:text-primary"
                           onClick={() =>
                             setCurrentImageIndex(
                               (i) =>
@@ -348,7 +348,7 @@ const ApartmentModal: React.FC<ApartmentModalProps> = ({
                           <FaChevronLeft />
                         </button>
                         <button
-                          className="absolute right-2 top-1/2 -translate-y-1/2 bg-white p-2 rounded-full shadow hover:bg-gray-200"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary p-2 rounded-full shadow hover:bg-gray-200 hover:text-primary"
                           onClick={() =>
                             setCurrentImageIndex(
                               (i) => (i + 1) % apartment.renders!.length
@@ -360,7 +360,7 @@ const ApartmentModal: React.FC<ApartmentModalProps> = ({
                       </>
                     )}
                     <button
-                      className="absolute bottom-2 right-2 bg-white p-2 rounded-full shadow hover:bg-gray-200"
+                      className="absolute bottom-2 right-2 bg-primary p-2 rounded-full shadow hover:bg-gray-200 hover:text-primary"
                       onClick={() => setLightboxOpen(true)}
                     >
                       <FaExpand />
@@ -370,7 +370,7 @@ const ApartmentModal: React.FC<ApartmentModalProps> = ({
               )}
 
             {/* CTA */}
-            <div className="mt-8 p-6 bg-primary text-white rounded-lg">
+            <div className="mt-8 p-6 rounded-lg glass-dark">
               <h3 className="text-xl font-semibold mb-2">
                 {apartment.status === "available"
                   ? "Interested in this unit?"
@@ -384,7 +384,7 @@ const ApartmentModal: React.FC<ApartmentModalProps> = ({
               <div className="flex flex-col sm:flex-row gap-3">
                 <a
                   href="https://impetus.com.pk/contact/"
-                  className="btn bg-white text-primary hover:bg-background"
+                  className="btn bg-background text-primary hover:bg-secondary"
                 >
                   Contact Sales Team
                 </a>
@@ -411,7 +411,7 @@ const ApartmentModal: React.FC<ApartmentModalProps> = ({
               className="object-contain"
             />
             <button
-              className="absolute top-4 right-4 text-white text-3xl"
+              className="absolute top-4 right-4 text-background text-3xl"
               onClick={() => setLightboxOpen(false)}
             >
               <FaTimes />

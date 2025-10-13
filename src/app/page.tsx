@@ -54,10 +54,10 @@ export default function FloorPlansPage() {
           transition={{ duration: 0.8 }}
           className="text-center mb-12"
         >
-          <h1 className="text-4xl md:text-5xl font-bold text-primary mb-4">
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
             Interactive Floor Plans
           </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg text-white max-w-2xl mx-auto">
             Explore our building floor by floor. Click on apartment markers to
             view details and availability.
           </p>
@@ -71,10 +71,8 @@ export default function FloorPlansPage() {
             transition={{ duration: 0.8, ease: "easeOut" }}
             className="sidebar"
           >
-            <div className="bg-white rounded-lg shadow-lg p-6 sticky top-24 h-[92vh] overflow-y-auto">
-              <h3 className="text-xl font-semibold text-primary mb-6">
-                Building Floors
-              </h3>
+            <div className="bg-white rounded-lg shadow-lg p-6 sticky top-24 h-[92vh] overflow-y-auto text-background glass-gradient">
+              <h3 className="text-xl font-semibold mb-6">Building Floors</h3>
 
               <div className="space-y-2">
                 <div className="space-y-2">
@@ -116,9 +114,9 @@ export default function FloorPlansPage() {
                       <button
                         key={floor.id}
                         onClick={() => setSelectedFloorId(floor.id)}
-                        className={`w-full text-left p-3 rounded-lg transition-all duration-300 ${
+                        className={`w-full text-left p-3 rounded-lg transition-all duration-300 text-white glass-dark ${
                           selectedFloorId === floor.id
-                            ? "bg-primary text-background shadow-md"
+                            ? "shadow-md glass-dark-hover"
                             : "bg-white hover:bg-primary text-primary hover:text-background"
                         }`}
                       >
@@ -133,10 +131,8 @@ export default function FloorPlansPage() {
               </div>
 
               {/* Section Plan */}
-              <div className="mt-8 pt-6 border-t border-gray-200">
-                <h4 className="text-lg font-semibold text-primary mb-4">
-                  Building Section
-                </h4>
+              <div className="mt-8 pt-6 border-t border-gray-200 text-background">
+                <h4 className="text-lg font-semibold mb-4">Building Section</h4>
                 <div>
                   {/* Thumbnail */}
                   <div
@@ -155,7 +151,7 @@ export default function FloorPlansPage() {
                     />
                   </div>
                 </div>
-                <p className="text-sm text-primary mt-2">
+                <p className="text-sm mt-2">
                   Complete building cross-section view
                 </p>
               </div>
@@ -185,32 +181,30 @@ export default function FloorPlansPage() {
           </motion.div>
         </div>
 
-        {/* Legend */}
+        {/* Legend
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.6 }}
-          className="mt-12 bg-white rounded-lg shadow-lg p-6"
+          className="mt-12 bg-white rounded-lg shadow-lg p-6 text-white glass-gradient"
         >
-          <h3 className="text-xl font-semibold text-primary mb-4">Legend</h3>
+          <h3 className="text-xl font-semibold mb-4">Legend</h3>
           <div className="flex flex-wrap gap-6">
             <div className="flex items-center space-x-2">
               <div className="w-4 h-4 rounded-full bg-success border-2 border-white shadow-md"></div>
-              <span className="text-primary font-medium">
-                Available Apartment
-              </span>
+              <span className="font-medium">Available Apartment</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-4 h-4 rounded-full bg-sold border-2 border-white shadow-md"></div>
-              <span className="text-primary font-medium">Sold Apartment</span>
+              <span className="font-medium">Sold Apartment</span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="text-primary font-medium">
+              <span className="font-medium">
                 Click markers to view apartment details
               </span>
             </div>
           </div>
-        </motion.div>
+        </motion.div> */}
       </div>
 
       {/* Apartment Modal */}

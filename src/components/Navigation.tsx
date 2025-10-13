@@ -26,15 +26,15 @@ const Navigation = () => {
   ];
 
   return (
-    <nav className="bg-white shadow-lg sticky top-0 z-50">
+    <nav className="shadow-lg sticky top-0 z-50 glass-dark">
       <div className="container mx-auto px-6">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">E</span>
+            <div className="w-8 h-8 bg-background rounded-lg flex items-center justify-center">
+              <span className="text-primary font-bold text-lg">E</span>
             </div>
-            <span className="font-bold text-xl text-primary">Eyrie</span>
+            <span className="font-bold text-xl text-background">Eyrie</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -43,7 +43,7 @@ const Navigation = () => {
               <Link
                 key={item.href}
                 href={item.href}
-                className="text-primary hover:text-accent transition-colors duration-300 font-medium"
+                className="text-background hover:text-secondary transition-colors duration-300 font-medium"
               >
                 {item.label}
               </Link>
@@ -53,7 +53,7 @@ const Navigation = () => {
               <div className="flex items-center space-x-4">
                 <Link
                   href="/admin"
-                  className="text-primary hover:text-accent transition-colors duration-300 font-medium"
+                  className="text-background hover:text-secondary transition-colors duration-300 font-medium"
                 >
                   Admin Panel
                 </Link>
@@ -78,17 +78,17 @@ const Navigation = () => {
           >
             <div className="flex flex-col space-y-1">
               <span
-                className={`block w-6 h-0.5 bg-primary transition-all duration-300 ${
+                className={`block w-6 h-0.5 bg-background transition-all duration-300 ${
                   isOpen ? "rotate-45 translate-y-1.5" : ""
                 }`}
               ></span>
               <span
-                className={`block w-6 h-0.5 bg-primary transition-all duration-300 ${
+                className={`block w-6 h-0.5 bg-background transition-all duration-300 ${
                   isOpen ? "opacity-0" : ""
                 }`}
               ></span>
               <span
-                className={`block w-6 h-0.5 bg-primary transition-all duration-300 ${
+                className={`block w-6 h-0.5 bg-background transition-all duration-300 ${
                   isOpen ? "-rotate-45 -translate-y-1.5" : ""
                 }`}
               ></span>
@@ -109,7 +109,7 @@ const Navigation = () => {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="text-primary hover:text-accent transition-colors duration-300 font-medium py-2"
+                  className="text-background hover:text-secondary transition-colors duration-300 font-medium py-2"
                   onClick={() => setIsOpen(false)}
                 >
                   {item.label}
@@ -120,7 +120,7 @@ const Navigation = () => {
                 <div className="flex flex-col space-y-2 pt-2 border-t border-gray-200">
                   <Link
                     href="/admin"
-                    className="text-primary hover:text-accent transition-colors duration-300 font-medium py-2"
+                    className="text-background hover:text-secondary transition-colors duration-300 font-medium py-2"
                     onClick={() => setIsOpen(false)}
                   >
                     Admin Panel
