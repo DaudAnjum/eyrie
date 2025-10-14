@@ -383,7 +383,7 @@ const ApartmentModal: React.FC<ApartmentModalProps> = ({
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <a
-                  href="https://impetus.com.pk/contact/"
+                  href="https://impetus.com.pk/inquire/"
                   className="btn bg-background text-primary hover:bg-secondary"
                 >
                   Contact Sales Team
