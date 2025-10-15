@@ -231,13 +231,15 @@ export default function FloorPlansPage() {
             >
               {/* Zoomable + draggable image */}
               <motion.div
-                drag={zoom > 1 ? true : false}
-                dragConstraints={dragRef}
+                drag={zoom > 1}
+                dragConstraints={zoom > 1 ? undefined : dragRef} // No constraints when zoomed
+                dragElastic={0.2} // Optional: adds natural resistance
                 dragMomentum={false}
                 style={{
                   x: position.x,
                   y: position.y,
                   scale: zoom,
+                  cursor: zoom > 1 ? "grab" : "default", // Feedback to user
                 }}
                 className="w-full h-full relative flex items-center justify-center"
               >
@@ -245,7 +247,8 @@ export default function FloorPlansPage() {
                   src={sectionPlan}
                   alt="Building Section A-A"
                   fill
-                  className="object-contain pointer-events-none"
+                  className="object-contain"
+                  draggable={false} // Prevents browser default drag ghost image
                 />
               </motion.div>
 

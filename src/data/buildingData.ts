@@ -28,14 +28,14 @@ export const floors: Floor[] = [
     id: "basement",
     name: "Basement",
     level: -1,
-    planImage: "/assets/page8_img1.jpeg",
+    planImage: "/assets/page8_img1.webp",
     apartments: []
   },
   {
     id: "lower-ground",
     name: "Lower Ground Floor",
     level: 0,
-    planImage: "/assets/page9_img1.jpeg",
+    planImage: "/assets/page9_img1.webp",
     apartments: [
       // {
       //   id: "lg01",
@@ -183,7 +183,7 @@ export const floors: Floor[] = [
     id: "ground",
     name: "Ground Floor",
     level: 1,
-    planImage: "/assets/page10_img1.jpeg",
+    planImage: "/assets/page10_img1.webp",
     apartments: [
       // {
       //   id: "g01",
@@ -361,7 +361,7 @@ export const floors: Floor[] = [
     id: "first",
     name: "First Floor",
     level: 2,
-    planImage: "/assets/page11_img1.jpeg",
+    planImage: "/assets/page11_img1.webp",
     apartments: [
       // {
       //   id: "f01",
@@ -499,7 +499,7 @@ export const floors: Floor[] = [
     id: "second",
     name: "Second Floor",
     level: 3,
-    planImage: "/assets/page12_img1.jpeg",
+    planImage: "/assets/page12_img1.webp",
     apartments: [
       // {
       //   id: "s01",
@@ -627,7 +627,7 @@ export const floors: Floor[] = [
     id: "third",
     name: "Third Floor",
     level: 4,
-    planImage: "/assets/page13_img1.jpeg",
+    planImage: "/assets/page13_img1.webp",
     apartments: [
       // {
       //   id: "t01",
@@ -873,7 +873,7 @@ export const floors: Floor[] = [
     id: "fourth",
     name: "Fourth Floor",
     level: 5,
-    planImage: "/assets/page14_img1.jpeg",
+    planImage: "/assets/page14_img1.webp",
     apartments: [
       // {
       //   id: "fo01",
@@ -1119,7 +1119,7 @@ export const floors: Floor[] = [
     id: "fifth",
     name: "Fifth Floor",
     level: 6,
-    planImage: "/assets/page15_img1.jpeg",
+    planImage: "/assets/page15_img1.webp",
     apartments: [
       // {
       //   id: "fi01",
@@ -1365,7 +1365,7 @@ export const floors: Floor[] = [
     id: "sixth",
     name: "Sixth Floor",
     level: 7,
-    planImage: "/assets/page16_img1.jpeg",
+    planImage: "/assets/page16_img1.webp",
     apartments: [
       // {
       //   id: "si01",
@@ -1513,7 +1513,7 @@ export const floors: Floor[] = [
     id: "seventh",
     name: "Seventh Floor",
     level: 8,
-    planImage: "/assets/page17_img1.jpeg",
+    planImage: "/assets/page17_img1.webp",
     apartments: [
       // {
       //   id: "se01",
@@ -1647,7 +1647,7 @@ export const floors: Floor[] = [
     id: "eighth",
     name: "Eighth Floor",
     level: 9,
-    planImage: "/assets/page18_img1.jpeg",
+    planImage: "/assets/page18_img1.webp",
     apartments: [
       // {
       //   id: "e01",
@@ -1753,7 +1753,7 @@ export const floors: Floor[] = [
     id: "ninth",
     name: "Ninth Floor",
     level: 10,
-    planImage: "/assets/page19_img1.jpeg",
+    planImage: "/assets/page19_img1.webp",
     apartments: [
       // {
       //   id: "n01",
@@ -1775,9 +1775,9 @@ export const floors: Floor[] = [
     id: "rooftop",
     name: "Rooftop",
     level: 11,
-    planImage: "/assets/page20_img1.jpeg",
+    planImage: "/assets/page20_img1.webp",
     apartments: []
   }
 ];
 
-export const sectionPlan = "/assets/page21_img1.jpeg";
+export const sectionPlan = "/assets/page21_img1.webp";

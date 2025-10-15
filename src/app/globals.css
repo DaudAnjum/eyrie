@@ -27,7 +27,7 @@ body {
   font-family: 'Open Sans', sans-serif;
   color: var(--color-text);
   /* background-color: var(--color-background); */
-  background-image: url('/assets/floorApartments_bg.jpeg');
+  background-image: url('/assets/floorApartments_bg.webp');
   background-size: cover;              /* Cover the entire viewport */
   background-position: center;         /* Center the image */
   background-repeat: no-repeat;
