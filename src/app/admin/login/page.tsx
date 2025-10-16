@@ -26,9 +26,8 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (res.ok) {
-        console.log("✅ Redirecting to admin dashboard...");
         setUser({ id: data.id, username: data.username, role: "admin" });
-        router.push("/admin"); // <--- redirect on success
+        router.push("/admin");
       } else {
         setError(data.error || "Invalid username or password");
       }

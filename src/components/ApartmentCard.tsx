@@ -86,13 +86,12 @@ const ApartmentCard: React.FC<ApartmentCardProps> = ({
         {apartment.renders && apartment.renders.length > 0 ? (
           <>
             <Image
-              src={apartment.renders[0]} // show the first image
+              src={apartment.renders[0]}
               alt={`Apartment ${apartment.number}`}
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-300"
             />
 
-            {/* If there are more images, show indicator */}
             {apartment.renders.length > 1 && (
               <div className="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded-md">
                 +{apartment.renders.length - 1} more

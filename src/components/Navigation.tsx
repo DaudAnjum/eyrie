@@ -12,9 +12,9 @@ const Navigation = () => {
   const handleLogout = async () => {
     try {
       await fetch("/api/admin/logout", { method: "POST" });
-      setUser(null); // clear user from store
+      setUser(null);
       setIsOpen(false);
-      window.location.href = "/admin/login"; // redirect after logout
+      window.location.href = "/admin/login";
     } catch (err) {
       console.error("Logout failed:", err);
     }

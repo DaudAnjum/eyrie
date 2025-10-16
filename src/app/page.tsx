@@ -9,8 +9,6 @@ import FloorPlanViewer from "@/components/FloorPlanViewer";
 import ApartmentModal from "@/components/ApartmentModal";
 import { FaTimes, FaPlus, FaMinus } from "react-icons/fa";
 
-console.log("🚨 FloorPlanViewer RENDERED");
-
 export default function FloorPlansPage() {
   const [selectedFloorId, setSelectedFloorId] = useState<string>(floors[5].id);
   const {
@@ -21,9 +19,7 @@ export default function FloorPlansPage() {
   } = useAppStore();
 
   useEffect(() => {
-    console.log("🟡 FloorPlanViewer mounted. Current apartments:", apartments);
     if (apartments.length === 0) {
-      console.log("🏠 Fetching apartments from Cached data...");
       fetchApartments();
     }
   }, [fetchApartments, apartments]);
@@ -35,11 +31,11 @@ export default function FloorPlansPage() {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const dragRef = useRef<HTMLDivElement>(null);
 
-  const handleZoomIn = () => setZoom((z) => Math.min(z + 0.25, 3)); // max 3x
+  const handleZoomIn = () => setZoom((z) => Math.min(z + 0.25, 3));
   const handleZoomOut = () => {
     setZoom((z) => {
       const newZoom = Math.max(z - 0.25, 1);
-      if (newZoom === 1) setPosition({ x: 0, y: 0 }); // reset pan
+      if (newZoom === 1) setPosition({ x: 0, y: 0 });
       return newZoom;
     });
   };
@@ -81,7 +77,6 @@ export default function FloorPlansPage() {
                       apartments.filter((apt) => apt.floorId === floor.id)
                         .length
                     } apartments`;
-                    console.log("🏢 Floor:", floor.name, "Units:", unitLabel);
 
                     // Special cases
                     if (floor.name.toLowerCase().includes("basement")) {
@@ -103,11 +98,11 @@ export default function FloorPlansPage() {
                     } else if (
                       floor.name.toLowerCase().includes("first floor")
                     ) {
-                      unitLabel = `13 offices`; // override count
+                      unitLabel = `13 offices`;
                     } else if (
                       floor.name.toLowerCase().includes("second floor")
                     ) {
-                      unitLabel = `12 offices`; // override count
+                      unitLabel = `12 offices`;
                     }
 
                     return (
@@ -140,7 +135,7 @@ export default function FloorPlansPage() {
                     onClick={() => {
                       setIsOpen(true);
                       setZoom(1);
-                      setPosition({ x: 0, y: 0 }); // reset pan
+                      setPosition({ x: 0, y: 0 });
                     }}
                   >
                     <Image
@@ -168,10 +163,10 @@ export default function FloorPlansPage() {
             <AnimatePresence mode="wait">
               {selectedFloor && (
                 <motion.div
-                  key={selectedFloor.id} // Ensures animation when switching floors
-                  initial={{ x: "100%", opacity: 0 }} // Slide in from right
+                  key={selectedFloor.id}
+                  initial={{ x: "100%", opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
-                  exit={{ x: "100%", opacity: 0 }} // Slide out when unselected
+                  exit={{ x: "100%", opacity: 0 }}
                   transition={{ duration: 0.4, ease: "easeOut" }}
                 >
                   <FloorPlanViewer floor={selectedFloor} />
@@ -180,31 +175,6 @@ export default function FloorPlansPage() {
             </AnimatePresence>
           </motion.div>
         </div>
-
-        {/* Legend
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.6 }}
-          className="mt-12 bg-white rounded-lg shadow-lg p-6 text-white glass-gradient"
-        >
-          <h3 className="text-xl font-semibold mb-4">Legend</h3>
-          <div className="flex flex-wrap gap-6">
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded-full bg-success border-2 border-white shadow-md"></div>
-              <span className="font-medium">Available Apartment</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded-full bg-sold border-2 border-white shadow-md"></div>
-              <span className="font-medium">Sold Apartment</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="font-medium">
-                Click markers to view apartment details
-              </span>
-            </div>
-          </div>
-        </motion.div> */}
       </div>
 
       {/* Apartment Modal */}
@@ -227,19 +197,18 @@ export default function FloorPlansPage() {
             <div
               ref={dragRef}
               className="relative z-[9999] w-full max-w-5xl h-[80vh] flex items-center justify-center"
-              onClick={(e) => e.stopPropagation()} // prevent close on image click
+              onClick={(e) => e.stopPropagation()}
             >
-              {/* Zoomable + draggable image */}
               <motion.div
                 drag={zoom > 1}
-                dragConstraints={zoom > 1 ? undefined : dragRef} // No constraints when zoomed
-                dragElastic={0.2} // Optional: adds natural resistance
+                dragConstraints={zoom > 1 ? undefined : dragRef}
+                dragElastic={0.2}
                 dragMomentum={false}
                 style={{
                   x: position.x,
                   y: position.y,
                   scale: zoom,
-                  cursor: zoom > 1 ? "grab" : "default", // Feedback to user
+                  cursor: zoom > 1 ? "grab" : "default",
                 }}
                 className="w-full h-full relative flex items-center justify-center"
               >
@@ -248,11 +217,10 @@ export default function FloorPlansPage() {
                   alt="Building Section A-A"
                   fill
                   className="object-contain"
-                  draggable={false} // Prevents browser default drag ghost image
+                  draggable={false}
                 />
               </motion.div>
 
-              {/* Close button - stays top right */}
               <button
                 onClick={() => setIsOpen(false)}
                 className="absolute top-4 right-4 bg-primary bg-opacity-70 text-white text-3xl p-2 rounded-full hover:bg-opacity-90 hover:bg-white hover:text-primary"
@@ -260,7 +228,6 @@ export default function FloorPlansPage() {
                 <FaTimes />
               </button>
 
-              {/* Zoom controls - top center, independent of zoom */}
               <div className="absolute top-4 left-1/2 transform -translate-x-1/2 flex space-x-3 bg-primary bg-opacity-70 p-2 rounded-lg">
                 <button
                   onClick={handleZoomOut}

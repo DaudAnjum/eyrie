@@ -11,9 +11,7 @@ export default function AdminPage() {
   if (token) {
     try {
       user = jwt.verify(token, process.env.JWT_SECRET!);
-      console.log("🔎 Token Verified", token);
     } catch (err) {
-      console.error("❌ JWT verification failed:", err);
       user = null;
     }
   }

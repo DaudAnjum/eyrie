@@ -1,4 +1,3 @@
-// src/app/api/admin/login/route.ts
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
@@ -10,31 +9,24 @@ export async function POST(req: Request) {
   try {
     const { username, password } = await req.json();
 
-    // const admin = db.prepare("SELECT * FROM admins WHERE username = ?").get(username) as Admin | undefined;
-
     const { data: admin, error } = await supabase
       .from("admins")
       .select("*")
       .eq("username", username)
       .single();
 
-    console.log("🔎 Login attempt:", username);
 
     if (!username || !password) {
-      console.log("❌ Missing username or password");
       return NextResponse.json({ error: "Missing credentials" }, { status: 400 });
     }
 
-    console.log("📂 DB result:", admin);
 
     if (error || !admin) {
-      console.log("❌ No admin found with username:", username);
       return NextResponse.json({ error: "Incorrect username" }, { status: 401 });
     }
 
     const valid = verifyPassword(password, admin.password_hash);
 
-    console.log("🔑 Password valid:", valid);
 
     if (!valid) {
       return NextResponse.json({ error: "Incorrect password" }, { status: 401 });
@@ -43,7 +35,6 @@ export async function POST(req: Request) {
     // Generate JWT
     const token = generateToken({ id: admin.id, username: admin.username, role: "admin" });
 
-    console.log("✅ Login successful for:", username);
 
     // Set HttpOnly cookie
     const res = NextResponse.json({ message: "Login successful" });

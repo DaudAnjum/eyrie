@@ -26,13 +26,12 @@ body {
   overflow-x: hidden;
   font-family: 'Open Sans', sans-serif;
   color: var(--color-text);
-  /* background-color: var(--color-background); */
   background-image: url('/assets/floorApartments_bg.webp');
-  background-size: cover;              /* Cover the entire viewport */
-  background-position: center;         /* Center the image */
+  background-size: cover;       
+  background-position: center; 
   background-repeat: no-repeat;
   height: 100vh;
-  background-color: rgba(0,0,0,0.5);   /* Overlay color */
+  background-color: rgba(0,0,0,0.5);
   background-blend-mode: multiply;
 }
 
@@ -47,11 +46,11 @@ a {
 }
 
 .glass {
-  background: rgba(255, 255, 255, 0.1); /* Slight white tint */
-  backdrop-filter: blur(10px);          /* Blur behind the element */
-  -webkit-backdrop-filter: blur(10px);  /* Safari support */
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);   
+  -webkit-backdrop-filter: blur(10px); 
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.3); /* Subtle border */
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .glass-dark {

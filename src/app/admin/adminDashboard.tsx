@@ -9,47 +9,19 @@ import { floors } from "@/data/buildingData";
 
 export default function AdminDashboard({ user }: { user: any }) {
   const { apartments, updateApartmentStatus, fetchApartments } = useAppStore();
-  // const [setApartments] = useState<Apartment[]>([]);
-  // const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<
     "all" | "available" | "sold"
   >("all");
   const [selectedFloor, setSelectedFloor] = useState<string>("all");
 
-  // Get all apartments (use store data if available, fallback to static data)
-  // const allApartments =
-  // apartments.length > 0
-  //   ? apartments
-  //   : floors.flatMap((floor) => floor.apartments);
-
   useEffect(() => {
     if (apartments.length === 0) {
-      console.log("🔍 Fetching apartments from Cached data (store)...");
       fetchApartments();
     }
   }, [fetchApartments]);
 
-  // useEffect(() => {
-  //   async function fetchApartments() {
-  //     setLoading(true);
-  //     const { data, error } = await supabase.from("apartments").select("*");
-  //     console.log("----------Fetched apartments:", data);
-
-  //     if (error) {
-  //       console.error("Error fetching apartments:", error);
-  //       setApartments([]);
-  //     } else if (data) {
-  //       console.log("Fetched apartments:", data);
-  //       setApartments(data);
-  //     }
-  //     setLoading(false);
-  //   }
-
-  //   fetchApartments();
-  // }, []);
-
-  // Filter apartments based on search, status, and selected floor
+  // Filtered apartments based on search, status, and floor
   const filteredApartments = apartments.filter((apartment) => {
     const matchesSearch =
       apartment.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -60,13 +32,6 @@ export default function AdminDashboard({ user }: { user: any }) {
       selectedFloor === "all" || apartment.floorId === selectedFloor;
     return matchesSearch && matchesStatus && matchesFloor;
   });
-
-  // const handleStatusChange = (
-  //   apartmentId: string,
-  //   newStatus: "available" | "sold"
-  // ) => {
-  //   updateApartmentStatus(apartmentId, newStatus);
-  // };
 
   const handleStatusChange = async (
     apartmentId: string,
@@ -80,40 +45,11 @@ export default function AdminDashboard({ user }: { user: any }) {
     if (error) {
       console.error("Error updating status:", error);
     } else {
-      console.log(
-        `✅ Status updated for apartment ${apartmentId}: ${newStatus}`
-      );
-      updateApartmentStatus(apartmentId, newStatus); // ✅ update via global store
+      updateApartmentStatus(apartmentId, newStatus);
 
       await fetch("/api/apartments?invalidate=1");
     }
   };
-
-  // const handleStatusChange = async (
-  //   apartmentId: string,
-  //   newStatus: "available" | "sold"
-  // ) => {
-  //   const { error } = await supabase
-  //     .from("apartments")
-  //     .update({ status: newStatus })
-  //     .eq("id", apartmentId);
-
-  //   if (error) {
-  //     console.error("Error updating status:", error);
-  //   } else {
-  //     setApartments((prev) =>
-  //       prev.map((apt) =>
-  //         apt.id === apartmentId ? { ...apt, status: newStatus } : apt
-  //       )
-  //     );
-  //   }
-  // };
-
-  // const stats = {
-  //   total: allApartments.length,
-  //   available: allApartments.filter((apt) => apt.status === "available").length,
-  //   sold: allApartments.filter((apt) => apt.status === "sold").length,
-  // };
 
   const stats = {
     total: apartments.length,

@@ -28,28 +28,20 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setUser: (user) => set({ user }),
 
-  // 🔹 Fetch apartments from Supabase
   fetchApartments: async () => {
     try{
-      //const { data, error } = await supabase.from("apartments").select("*");
       const res = await fetch("/api/apartments");
       const data = await res.json();
 
-      console.log("📦 Raw data from Supabase:", data);
-
-
       if (!res.ok) {
-        console.error("❌ Error fetching apartments:", data);
         return;
       }
 
       if (!data || data.length === 0) {
-        console.warn('⚠️ No apartments found in Supabase');
         set({ apartments: [] });
         return;
       }
 
-      // ✅ Normalize Supabase fields → match Apartment interface
       const normalized: Apartment[] = data.map((apt: any) => ({
         id: apt.id,
         floorId: apt.floor_id,
@@ -70,17 +62,13 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       }));
 
-      console.log("🚀 Normalized apartment with coordinates:", normalized);
-
-      console.log('✅ Apartments fetched and normalized:', normalized);
       set({ apartments: normalized as Apartment[] });
     }catch (err) {
-      console.error("💥 Unexpected error while fetching apartments:", err);
+      console.error("Unexpected error while fetching apartments:", err);
       set({ apartments: [] });
     }
   },  
 
-// 🔹 Update apartment status in Supabase + local state
   updateApartmentStatus: async (apartmentId, status) => {
     const { error } = await supabase
       .from("apartments")
@@ -88,7 +76,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       .eq("id", apartmentId);
 
     if (error) {
-      console.error("❌ Error updating status:", error);
+      console.error("Error updating status:", error);
       return;
     }
 
