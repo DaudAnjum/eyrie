@@ -20,6 +20,8 @@ const FloorPlanViewer: React.FC<FloorPlanViewerProps> = ({ floor }) => {
 
   const floorApartments = apartments.filter((apt) => apt.floorId === floor.id);
 
+  // Zoom and Pan Handlers
+
   const handleZoomIn = () => {
     setZoom((prev) => Math.min(prev + 0.2, 3));
   };
