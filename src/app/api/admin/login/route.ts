@@ -25,6 +25,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Incorrect username" }, { status: 401 });
     }
 
+    if (!admin.password_hash) {
+  return NextResponse.json({ error: "Invalid admin record" }, { status: 500 });
+}
+
     const valid = verifyPassword(password, admin.password_hash);
 
 
