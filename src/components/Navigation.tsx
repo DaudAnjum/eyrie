@@ -50,7 +50,13 @@ const Navigation = () => {
             ))}
 
             {user?.role === "admin" ? (
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-6">
+                <Link
+                  href="/admin/client"
+                  className="text-background hover:text-secondary transition-colors duration-300 font-medium"
+                >
+                  Clients Panel
+                </Link>
                 <Link
                   href="/admin"
                   className="text-background hover:text-secondary transition-colors duration-300 font-medium"

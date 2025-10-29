@@ -6,6 +6,7 @@ import { useAppStore } from "@/lib/store";
 import { supabase } from "@/lib/supabaseClient";
 import { Apartment } from "@/types";
 import { floors } from "@/data/buildingData";
+import Link from "next/link";
 
 export default function AdminDashboard({ user }: { user: any }) {
   const { apartments, updateApartmentStatus, fetchApartments } = useAppStore();

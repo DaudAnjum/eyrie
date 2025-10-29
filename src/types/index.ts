@@ -16,6 +16,24 @@ export interface Apartment {
   };
 }
 
+export interface Client {
+  membership_number: string;
+  client_name: string;
+  CNIC: string;
+  address: string;
+  email: string;
+  contact_number: string;
+  next_of_kin: string;
+  apartment_id: string | null;
+  discount: number;
+  amount_payable: number;
+  installment_plan: string;
+  agent_name: string;
+  status: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 
 export interface installmentOptions {
   booking: string;
