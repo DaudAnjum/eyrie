@@ -28,7 +28,6 @@ body {
   color: var(--color-text);
   height: 100vh;
   background-color: rgba(0,0,0,0.5);
-  background-blend-mode: multiply;
 }
 
 h1, h2, h3, h4, h5, h6 {

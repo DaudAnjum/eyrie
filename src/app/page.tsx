@@ -41,211 +41,218 @@ export default function FloorPlansPage() {
   };
 
   return (
-    <div className="min-h-screen py-24 background-image: url('/assets/floorApartments_bg.webp') bg-cover bg-center">
-      <div className="container mx-auto px-6">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="text-center mb-12"
-        >
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            Interactive Floor Plans
-          </h1>
-          <p className="text-lg text-white max-w-2xl mx-auto">
-            Explore our building floor by floor. Click on apartment markers to
-            view details and availability.
-          </p>
-        </motion.div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Floor Navigation Sidebar */}
+    <div
+      className="min-h-screen py-24 bg-cover bg-center inset-0 bg-black/50 backdrop-blur-[2px]"
+      style={{ backgroundImage: "url('/assets/floorApartments_bg.webp')" }}
+    >
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]">
+        <div className="container mx-auto px-6">
+          {/* Header */}
           <motion.div
-            initial={{ x: "-100%", opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="sidebar"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-center mb-12"
           >
-            <div className="bg-white rounded-lg shadow-lg p-6 sticky top-24 h-[92vh] overflow-y-auto text-background glass-gradient">
-              <h3 className="text-xl font-semibold mb-6">Building Floors</h3>
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 mt-12">
+              Interactive Floor Plans
+            </h1>
+            <p className="text-lg text-white max-w-2xl mx-auto">
+              Explore our building floor by floor. Click on apartment markers to
+              view details and availability.
+            </p>
+          </motion.div>
 
-              <div className="space-y-2">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            {/* Floor Navigation Sidebar */}
+            <motion.div
+              initial={{ x: "-100%", opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className="sidebar"
+            >
+              <div className="bg-white rounded-lg shadow-lg p-6 sticky top-24 h-[92vh] overflow-y-auto text-background glass-gradient">
+                <h3 className="text-xl font-semibold mb-6">Building Floors</h3>
+
                 <div className="space-y-2">
-                  {floors.map((floor) => {
-                    let unitLabel = `${
-                      apartments.filter((apt) => apt.floorId === floor.id)
-                        .length
-                    } apartments`;
-
-                    // Special cases
-                    if (floor.name.toLowerCase().includes("basement")) {
-                      unitLabel = "Parking";
-                    } else if (
-                      floor.name.toLowerCase().includes("lower ground")
-                    ) {
-                      unitLabel = `${
+                  <div className="space-y-2">
+                    {floors.map((floor) => {
+                      let unitLabel = `${
                         apartments.filter((apt) => apt.floorId === floor.id)
                           .length
-                      } shops`;
-                    } else if (
-                      floor.name.toLowerCase().includes("ground floor")
-                    ) {
-                      unitLabel = `${
-                        apartments.filter((apt) => apt.floorId === floor.id)
-                          .length
-                      } shops`;
-                    } else if (
-                      floor.name.toLowerCase().includes("first floor")
-                    ) {
-                      unitLabel = `13 offices`;
-                    } else if (
-                      floor.name.toLowerCase().includes("second floor")
-                    ) {
-                      unitLabel = `12 offices`;
-                    }
+                      } apartments`;
 
-                    return (
-                      <button
-                        key={floor.id}
-                        onClick={() => setSelectedFloorId(floor.id)}
-                        className={`w-full text-left p-3 rounded-lg transition-all duration-300 text-white glass-dark ${
-                          selectedFloorId === floor.id
-                            ? "shadow-md glass-dark-hover"
-                            : "bg-white hover:bg-primary text-primary hover:text-background"
-                        }`}
-                      >
-                        <div className="font-medium">{floor.name}</div>
-                        <div className="text-sm opacity-75">
-                          Level {floor.level} • {unitLabel}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+                      // Special cases
+                      if (floor.name.toLowerCase().includes("basement")) {
+                        unitLabel = "Parking";
+                      } else if (
+                        floor.name.toLowerCase().includes("lower ground")
+                      ) {
+                        unitLabel = `${
+                          apartments.filter((apt) => apt.floorId === floor.id)
+                            .length
+                        } shops`;
+                      } else if (
+                        floor.name.toLowerCase().includes("ground floor")
+                      ) {
+                        unitLabel = `${
+                          apartments.filter((apt) => apt.floorId === floor.id)
+                            .length
+                        } shops`;
+                      } else if (
+                        floor.name.toLowerCase().includes("first floor")
+                      ) {
+                        unitLabel = `13 offices`;
+                      } else if (
+                        floor.name.toLowerCase().includes("second floor")
+                      ) {
+                        unitLabel = `12 offices`;
+                      }
 
-              {/* Section Plan */}
-              <div className="mt-8 pt-6 border-t border-gray-200 text-background">
-                <h4 className="text-lg font-semibold mb-4">Building Section</h4>
-                <div>
-                  {/* Thumbnail */}
-                  <div
-                    className="relative h-48 rounded-lg overflow-hidden cursor-pointer"
-                    onClick={() => {
-                      setIsOpen(true);
-                      setZoom(1);
-                      setPosition({ x: 0, y: 0 });
-                    }}
-                  >
-                    <Image
-                      src={sectionPlan}
-                      alt="Building Section A-A"
-                      fill
-                      className="object-cover hover:scale-105 transition-transform duration-300"
-                    />
+                      return (
+                        <button
+                          key={floor.id}
+                          onClick={() => setSelectedFloorId(floor.id)}
+                          className={`w-full text-left p-3 rounded-lg transition-all duration-300 text-white glass-dark ${
+                            selectedFloorId === floor.id
+                              ? "shadow-md glass-dark-hover"
+                              : "bg-white hover:bg-primary text-primary hover:text-background"
+                          }`}
+                        >
+                          <div className="font-medium">{floor.name}</div>
+                          <div className="text-sm opacity-75">
+                            Level {floor.level} • {unitLabel}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
-                <p className="text-sm mt-2">
-                  Complete building cross-section view
-                </p>
+
+                {/* Section Plan */}
+                <div className="mt-8 pt-6 border-t border-gray-200 text-background">
+                  <h4 className="text-lg font-semibold mb-4">
+                    Building Section
+                  </h4>
+                  <div>
+                    {/* Thumbnail */}
+                    <div
+                      className="relative h-48 rounded-lg overflow-hidden cursor-pointer"
+                      onClick={() => {
+                        setIsOpen(true);
+                        setZoom(1);
+                        setPosition({ x: 0, y: 0 });
+                      }}
+                    >
+                      <Image
+                        src={sectionPlan}
+                        alt="Building Section A-A"
+                        fill
+                        className="object-cover hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-sm mt-2">
+                    Complete building cross-section view
+                  </p>
+                </div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
 
-          {/* Floor Plan Viewer */}
-          <motion.div
-            initial={{ x: "100%", opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="lg:col-span-3"
-          >
-            <AnimatePresence mode="wait">
-              {selectedFloor && (
-                <motion.div
-                  key={selectedFloor.id}
-                  initial={{ x: "100%", opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  exit={{ x: "100%", opacity: 0 }}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
-                >
-                  <FloorPlanViewer floor={selectedFloor} />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        </div>
-      </div>
-
-      {/* Apartment Modal */}
-      {selectedApartment && (
-        <ApartmentModal
-          apartment={selectedApartment}
-          onClose={() => setSelectedApartment(null)}
-        />
-      )}
-      {/* Popup */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center"
-            onClick={() => setIsOpen(false)}
-          >
-            <div
-              ref={dragRef}
-              className="relative z-[9999] w-full max-w-5xl h-[80vh] flex items-center justify-center"
-              onClick={(e) => e.stopPropagation()}
+            {/* Floor Plan Viewer */}
+            <motion.div
+              initial={{ x: "100%", opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+              className="lg:col-span-3"
             >
-              <motion.div
-                drag={zoom > 1}
-                dragConstraints={zoom > 1 ? undefined : dragRef}
-                dragElastic={0.2}
-                dragMomentum={false}
-                style={{
-                  x: position.x,
-                  y: position.y,
-                  scale: zoom,
-                  cursor: zoom > 1 ? "grab" : "default",
-                }}
-                className="w-full h-full relative flex items-center justify-center"
-              >
-                <Image
-                  src={sectionPlan}
-                  alt="Building Section A-A"
-                  fill
-                  className="object-contain"
-                  draggable={false}
-                />
-              </motion.div>
+              <AnimatePresence mode="wait">
+                {selectedFloor && (
+                  <motion.div
+                    key={selectedFloor.id}
+                    initial={{ x: "100%", opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    exit={{ x: "100%", opacity: 0 }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                  >
+                    <FloorPlanViewer floor={selectedFloor} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          </div>
+        </div>
 
-              <button
-                onClick={() => setIsOpen(false)}
-                className="absolute top-4 right-4 bg-primary bg-opacity-70 text-white text-3xl p-2 rounded-full hover:bg-opacity-90 hover:bg-white hover:text-primary"
-              >
-                <FaTimes />
-              </button>
-
-              <div className="absolute top-4 left-1/2 transform -translate-x-1/2 flex space-x-3 bg-primary bg-opacity-70 p-2 rounded-lg">
-                <button
-                  onClick={handleZoomOut}
-                  className="p-2 rounded-full text-white bg-white bg-opacity-20 hover:bg-opacity-30"
-                >
-                  <FaMinus />
-                </button>
-                <button
-                  onClick={handleZoomIn}
-                  className="p-2 rounded-full text-white bg-white bg-opacity-20 hover:bg-opacity-30"
-                >
-                  <FaPlus />
-                </button>
-              </div>
-            </div>
-          </motion.div>
+        {/* Apartment Modal */}
+        {selectedApartment && (
+          <ApartmentModal
+            apartment={selectedApartment}
+            onClose={() => setSelectedApartment(null)}
+          />
         )}
-      </AnimatePresence>
+        {/* Popup */}
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center"
+              onClick={() => setIsOpen(false)}
+            >
+              <div
+                ref={dragRef}
+                className="relative z-[9999] w-full max-w-5xl h-[80vh] flex items-center justify-center"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <motion.div
+                  drag={zoom > 1}
+                  dragConstraints={zoom > 1 ? undefined : dragRef}
+                  dragElastic={0.2}
+                  dragMomentum={false}
+                  style={{
+                    x: position.x,
+                    y: position.y,
+                    scale: zoom,
+                    cursor: zoom > 1 ? "grab" : "default",
+                  }}
+                  className="w-full h-full relative flex items-center justify-center"
+                >
+                  <Image
+                    src={sectionPlan}
+                    alt="Building Section A-A"
+                    fill
+                    className="object-contain"
+                    draggable={false}
+                  />
+                </motion.div>
+
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="absolute top-4 right-4 bg-primary bg-opacity-70 text-white text-3xl p-2 rounded-full hover:bg-opacity-90 hover:bg-white hover:text-primary"
+                >
+                  <FaTimes />
+                </button>
+
+                <div className="absolute top-4 left-1/2 transform -translate-x-1/2 flex space-x-3 bg-primary bg-opacity-70 p-2 rounded-lg">
+                  <button
+                    onClick={handleZoomOut}
+                    className="p-2 rounded-full text-white bg-white bg-opacity-20 hover:bg-opacity-30"
+                  >
+                    <FaMinus />
+                  </button>
+                  <button
+                    onClick={handleZoomIn}
+                    className="p-2 rounded-full text-white bg-white bg-opacity-20 hover:bg-opacity-30"
+                  >
+                    <FaPlus />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
