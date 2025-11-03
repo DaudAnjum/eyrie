@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAppStore } from "@/lib/store";
 import { supabase } from "@/lib/supabaseClient";
-import { Apartment } from "@/types";
 import { floors } from "@/data/buildingData";
-import Link from "next/link";
+import { usePathname } from "next/navigation";
+import AdminButtons from "./adminButtons"; // adjust relative path if needed
 
 export default function AdminDashboard({ user }: { user: any }) {
   const { apartments, updateApartmentStatus, fetchApartments } = useAppStore();
@@ -63,24 +63,16 @@ export default function AdminDashboard({ user }: { user: any }) {
     return floor ? floor.name : floorId;
   };
 
-  return (
-    <div className="min-h-screen py-24 bg-background">
-      <div className="container mx-auto px-6">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="mb-8"
-        >
-          <h1 className="text-4xl font-bold text-primary mb-2">
-            Admin Dashboard
-          </h1>
-          <p className="text-gray-600">
-            Manage apartment availability and status
-          </p>
-        </motion.div>
+  const pathname = usePathname();
 
+  return (
+    <div className="py-24 bg-background">
+      <h2 className="text-4xl font-semibold text-text mb-12 mt-12 text-center">
+        Admin Dashboard
+      </h2>
+      <AdminButtons />
+
+      <div className="container mx-auto px-6">
         {/* Statistics */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}

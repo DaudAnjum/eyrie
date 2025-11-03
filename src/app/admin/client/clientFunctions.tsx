@@ -31,6 +31,7 @@ export const createClient = async (clientData: any) => {
           membership_number: clientData.membership_number,
           client_name: clientData.client_name,
           CNIC: clientData.CNIC,
+          passport_number: clientData.passport_number,
           address: clientData.address,
           email: clientData.email,
           contact_number: clientData.contact_number,
@@ -41,6 +42,8 @@ export const createClient = async (clientData: any) => {
           installment_plan: clientData.installment_plan,
           agent_name: clientData.agent_name,
           status: clientData.status,
+          client_image: clientData.client_image || null,
+          documents: clientData.documents || [],
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
@@ -99,28 +102,6 @@ export const fetchClients = async () => {
 
 /**
  * ================================
- * FETCH CLIENT BY MEMBERSHIP NUMBER
- * ================================
- */
-// export const fetchClientByMembership = async (membership_number: string) => {
-//   try {
-//     const { data, error } = await supabase
-//       .from("clients")
-//       .select("*")
-//       .eq("membership_number", membership_number)
-//       .single();
-
-//     if (error) throw error;
-
-//     return { success: true, data };
-//   } catch (error: any) {
-//     console.error("❌ Error fetching client:", error.message);
-//     return { success: false, error: error.message };
-//   }
-// };
-
-/**
- * ================================
  * UPDATE CLIENT
  * ================================
  */
@@ -146,27 +127,6 @@ export const updateClient = async (
     return { success: false, error: error.message };
   }
 };
-
-/**
- * ================================
- * DELETE CLIENT
- * ================================
- */
-// export const deleteClient = async (membership_number: string) => {
-//   try {
-//     const { error } = await supabase
-//       .from("clients")
-//       .delete()
-//       .eq("membership_number", membership_number);
-
-//     if (error) throw error;
-
-//     return { success: true };
-//   } catch (error: any) {
-//     console.error("❌ Error deleting client:", error.message);
-//     return { success: false, error: error.message };
-//   }
-// };
 
 /**
  * ================================
@@ -224,3 +184,35 @@ export const getNextMembershipNumber = async (): Promise<string> => {
     return "EA-1";
   }
 };
+
+export async function uploadFile(bucket: string, file: File) {
+  try {
+    const filePath = `${Date.now()}-${file.name}`;
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, file);
+
+    if (error) {
+      console.error("Upload error:", error);
+      return null;
+    }
+
+    const { data: publicUrl } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(filePath);
+
+    return publicUrl?.publicUrl || null;
+  } catch (err) {
+    console.error("Unexpected upload error:", err);
+    return null;
+  }
+}
+
+export async function uploadMultipleFiles(bucket: string, files: File[]) {
+  const urls: string[] = [];
+  for (const file of files) {
+    const url = await uploadFile(bucket, file);
+    if (url) urls.push(url);
+  }
+  return urls;
+}

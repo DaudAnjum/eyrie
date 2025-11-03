@@ -26,10 +26,6 @@ body {
   overflow-x: hidden;
   font-family: 'Open Sans', sans-serif;
   color: var(--color-text);
-  background-image: url('/assets/floorApartments_bg.webp');
-  background-size: cover;       
-  background-position: center; 
-  background-repeat: no-repeat;
   height: 100vh;
   background-color: rgba(0,0,0,0.5);
   background-blend-mode: multiply;
@@ -81,7 +77,7 @@ a {
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 90%;
   margin: 0 auto;
   padding: 0 var(--spacing-24);
 }

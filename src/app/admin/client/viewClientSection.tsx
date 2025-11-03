@@ -18,6 +18,21 @@ export default function ViewClientSection({
         <h2 className="text-2xl font-semibold text-[#98786d] flex items-center gap-2">
           <FaInfoCircle className="text-[#98786d]" /> Client Details
         </h2>
+        {/* 🖼️ Client Image */}
+        <div>
+          <p className="text-[#98786d] font-medium">Client Image</p>
+          {client.client_image ? (
+            <img
+              src={client.client_image}
+              alt="Client"
+              className="mt-1 w-32 h-32 object-cover rounded-md border"
+            />
+          ) : (
+            <p className="text-gray-500 text-sm bg-gray-50 p-2 rounded-md border border-gray-200">
+              No image
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Personal Information */}
@@ -29,11 +44,41 @@ export default function ViewClientSection({
           <Detail label="Membership #" value={client.membership_number} />
           <Detail label="Name" value={client.client_name} />
           <Detail label="CNIC" value={client.CNIC} />
+          <Detail label="Passport Number" value={client.passport_number} />
           <Detail label="Email" value={client.email} />
           <Detail label="Contact Number" value={client.contact_number} />
           <Detail label="Next of Kin" value={client.next_of_kin} />
+
           <div className="md:col-span-2">
             <Detail label="Address" value={client.address} />
+          </div>
+          <div className="md:col-span-2">
+            <p className="text-[#98786d] font-medium">Documents</p>
+            {Array.isArray(client.documents) && client.documents.length > 0 ? (
+              <ul className="list-disc ml-5 space-y-1">
+                {client.documents.map((url: string, i: number) => {
+                  const fileName = decodeURIComponent(
+                    url.split("/").pop() || `Document ${i + 1}`
+                  );
+                  return (
+                    <li key={i}>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#98786d] underline"
+                      >
+                        View {fileName}
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="text-gray-500 text-sm bg-gray-50 p-2 rounded-md border border-gray-200">
+                No documents
+              </p>
+            )}
           </div>
         </div>
       </div>

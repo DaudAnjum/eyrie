@@ -2,8 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { createClient, getNextMembershipNumber } from "./clientFunctions";
+import {
+  createClient,
+  getNextMembershipNumber,
+  uploadFile,
+  uploadMultipleFiles,
+} from "./clientFunctions";
 import { FaUserPlus } from "react-icons/fa";
+import { Client } from "@/types";
 
 interface CreateClientSectionProps {
   onClose?: () => void;
@@ -18,6 +24,7 @@ export default function CreateClientSection({
     membership_number: "",
     client_name: "",
     CNIC: "",
+    passport_number: "",
     address: "",
     email: "",
     contact_number: "",
@@ -28,6 +35,8 @@ export default function CreateClientSection({
     amount_payable: "",
     agent_name: "",
     status: "Active",
+    client_image: null as File | null,
+    documents: [] as File[],
   });
 
   const [floorIds, setFloorIds] = useState<string[]>([]);
@@ -38,6 +47,7 @@ export default function CreateClientSection({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // 🧩 Fetch floors in order
   useEffect(() => {
@@ -134,9 +144,24 @@ export default function CreateClientSection({
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    field: "client_image" | "documents"
+  ) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    setFormData((prev: Client) => ({
+      ...prev,
+      ...(field === "client_image"
+        ? { client_image: files[0] }
+        : { documents: Array.from(files) }),
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    setIsLoading(true); // 🟢 Start loader immediately
     setErrors({});
     setGeneralError(null);
 
@@ -147,6 +172,7 @@ export default function CreateClientSection({
       "membership_number",
       "client_name",
       "CNIC",
+      "passport_number",
       "address",
       "email",
       "contact_number",
@@ -175,20 +201,33 @@ export default function CreateClientSection({
       newErrors.email = "Please enter a valid email address.";
     }
 
-    // ✅ If any validation fails, display inline errors
+    // ✅ If any validation fails, stop loader & display inline errors
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      setIsLoading(false); // 🔴 stop loader on validation failure
       return;
     }
 
-    // ✅ Prepare final data to send
-    const dataToSend = {
-      ...formData,
-      floor_id: selectedFloor,
-      apartment_number: selectedApartment,
-    };
-
     try {
+      // 🧩 Uploads (run in parallel for speed)
+      const [clientImageUrl, documentUrls] = await Promise.all([
+        formData.client_image
+          ? uploadFile("client-images", formData.client_image)
+          : Promise.resolve(null),
+        formData.documents && formData.documents.length > 0
+          ? uploadMultipleFiles("client-documents", formData.documents)
+          : Promise.resolve([]),
+      ]);
+
+      // ✅ Prepare final data to send
+      const dataToSend = {
+        ...formData,
+        floor_id: selectedFloor,
+        apartment_number: selectedApartment,
+        client_image: clientImageUrl,
+        documents: documentUrls,
+      };
+
       const result = await createClient(dataToSend);
 
       if (result.success) {
@@ -213,14 +252,12 @@ export default function CreateClientSection({
         setErrors({});
         setGeneralError(null);
 
-        // 🧩 Optionally refresh the next membership number (if you generate them)
         const nextNumber = await getNextMembershipNumber();
         setFormData((prev: any) => ({
           ...prev,
           membership_number: nextNumber,
         }));
 
-        // 🕒 Success message
         setSuccessMessage("✅ Client created successfully!");
 
         if (onClientCreated) await onClientCreated();
@@ -228,7 +265,7 @@ export default function CreateClientSection({
         // 🕐 Close modal after short delay
         setTimeout(() => {
           onClose?.();
-        }, 1500);
+        }, 1000);
       } else {
         setGeneralError(result.error || "An unexpected error occurred.");
         console.error("Error form data:", dataToSend);
@@ -236,6 +273,8 @@ export default function CreateClientSection({
     } catch (err: any) {
       console.error(err);
       setGeneralError("Something went wrong while creating the client.");
+    } finally {
+      setIsLoading(false); // 🔴 Stop loader in all cases
     }
   };
 
@@ -251,6 +290,20 @@ export default function CreateClientSection({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* 📸 Client Image Upload */}
+        <div className="flex flex-col">
+          <label className="text-sm font-medium text-[#98786d] mb-1">
+            Client Image
+          </label>
+          <input
+            type="file"
+            accept="image/*"
+            name="client_image"
+            onChange={(e) => handleFileChange(e, "client_image")}
+            className="border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-[#98786d]"
+          />
+        </div>
+
         {/* Membership Number */}
         <div className="flex flex-col">
           <label className="text-sm font-medium text-[#98786d] mb-1">
@@ -269,6 +322,7 @@ export default function CreateClientSection({
         {[
           { label: "Client Name", name: "client_name" },
           { label: "CNIC", name: "CNIC" },
+          { label: "Passport Number", name: "passport_number" },
           { label: "Email", name: "email" },
           { label: "Contact Number", name: "contact_number" },
           { label: "Next of Kin", name: "next_of_kin" },
@@ -306,6 +360,21 @@ export default function CreateClientSection({
             name="address"
             value={formData.address || ""}
             onChange={handleChange}
+            className="border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-[#98786d]"
+          />
+        </div>
+
+        {/* 📚 Documents Upload (Multiple) */}
+        <div className="flex flex-col">
+          <label className="text-sm font-medium text-[#98786d] mb-1">
+            Documents
+          </label>
+          <input
+            type="file"
+            accept="image/*"
+            name="documents"
+            multiple
+            onChange={(e) => handleFileChange(e, "documents")}
             className="border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-[#98786d]"
           />
         </div>
@@ -467,9 +536,40 @@ export default function CreateClientSection({
         )}
         <button
           type="submit"
-          className="mt-4 bg-[#98786d] text-white px-4 py-2 rounded-md hover:bg-[#7d645b] transition"
+          disabled={isLoading}
+          className={`bg-[#98786d] text-white px-6 py-2 rounded-md disabled:opacity-60 ${
+            isLoading
+              ? "opacity-70 cursor-not-allowed"
+              : "hover:bg-[#7d645b] cursor-pointer"
+          }`}
         >
-          Save Client
+          {isLoading ? (
+            <div className="flex items-center justify-center gap-2">
+              <svg
+                className="animate-spin h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                ></path>
+              </svg>
+              <span>Saving...</span>
+            </div>
+          ) : (
+            "Save Client"
+          )}
         </button>
       </div>
     </form>

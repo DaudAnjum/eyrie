@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { updateClient } from "./clientFunctions";
 import { FaUserEdit } from "react-icons/fa";
-import { FaTimes } from "react-icons/fa";
+import { uploadFile, uploadMultipleFiles } from "./clientFunctions";
 
 interface EditClientSectionProps {
   client: any;
@@ -21,6 +21,7 @@ export default function EditClientSection({
     membership_number: "",
     client_name: "",
     CNIC: "",
+    passport_number: "",
     address: "",
     email: "",
     contact_number: "",
@@ -32,6 +33,8 @@ export default function EditClientSection({
     amount_payable: "",
     agent_name: "",
     status: "Active",
+    client_image: null as File | null,
+    documents: [] as File[],
   });
 
   // floor / apartment related state
@@ -57,6 +60,7 @@ export default function EditClientSection({
       membership_number: client.membership_number ?? "",
       client_name: client.client_name ?? "",
       CNIC: client.CNIC ?? "",
+      passport_number: client.passport_number ?? "",
       address: client.address ?? "",
       email: client.email ?? "",
       contact_number: client.contact_number ?? "",
@@ -71,6 +75,8 @@ export default function EditClientSection({
           : "",
       agent_name: client.agent_name ?? "",
       status: client.status ?? "Active",
+      client_image: client.client_image ?? null,
+      documents: client.documents ?? [],
     }));
 
     // If client has apartment_id, fetch that apartment to get floor & number & price
@@ -253,6 +259,9 @@ export default function EditClientSection({
   ) => {
     const { name, value } = e.target;
 
+    // Skip if the input is a file input (those go to handleFileChange)
+    if (e.target.type === "file") return;
+
     // discount: sanitize + clamp 0..100
     if (name === "discount") {
       const numericValue = String(value).replace(/[^\d.]/g, "");
@@ -320,6 +329,42 @@ export default function EditClientSection({
     return clean;
   };
 
+  const handleFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    field: "client_image" | "documents"
+  ) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    if (field === "client_image") {
+      setFormData((prev: any) => ({
+        ...prev,
+        client_image: files[0],
+      }));
+    } else if (field === "documents") {
+      // 🟢 Append new files to existing documents instead of replacing
+      setFormData((prev: any) => {
+        const existingDocs = Array.isArray(prev.documents)
+          ? prev.documents
+          : [];
+        return {
+          ...prev,
+          documents: [...existingDocs, ...Array.from(files)],
+        };
+      });
+    }
+  };
+
+  const handleRemoveDocument = (index: number) => {
+    setFormData((prev: any) => {
+      const updatedDocs = Array.isArray(prev.documents)
+        ? [...prev.documents]
+        : [];
+      updatedDocs.splice(index, 1); // remove clicked document
+      return { ...prev, documents: updatedDocs };
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setGeneralError(null);
@@ -359,11 +404,51 @@ export default function EditClientSection({
           apartmentIdToSave = aptRow.id;
         }
       }
+      // 🟢 Handle file uploads before preparing updatedData
+      let clientImageUrl = formData.client_image;
+      let documentUrls: string[] = [];
 
-      // prepare updatedData object
+      // 🧩 1️⃣ Upload new client image if changed
+      if (formData.client_image instanceof File) {
+        clientImageUrl = await uploadFile(
+          "client-images",
+          formData.client_image
+        );
+      }
+
+      // 🧩 2️⃣ Handle documents — merge existing URLs with new uploads
+      let existingUrls: string[] = [];
+      let newFiles: File[] = [];
+
+      if (Array.isArray(formData.documents)) {
+        // separate old URLs and new Files
+        existingUrls = formData.documents.filter(
+          (item: any) => typeof item === "string"
+        );
+        newFiles = formData.documents.filter(
+          (item: any) => item instanceof File
+        );
+
+        // upload new files to Supabase (if any)
+        if (newFiles.length > 0) {
+          const uploaded = await uploadMultipleFiles(
+            "client-documents",
+            newFiles
+          );
+          documentUrls = [...existingUrls, ...uploaded]; // ✅ merge old + new
+        } else {
+          documentUrls = existingUrls; // no new files
+        }
+      } else {
+        documentUrls = [];
+      }
+
+      // 🧩 3️⃣ Prepare final data to send
       const updatedData: any = {
         ...formData,
         apartment_id: apartmentIdToSave,
+        client_image: clientImageUrl,
+        documents: documentUrls,
         updated_at: new Date().toISOString(),
       };
 
@@ -419,6 +504,36 @@ export default function EditClientSection({
         onSubmit={handleSubmit}
         className="grid grid-cols-1 md:grid-cols-2 gap-4"
       >
+        {/* 🖼️ Client Image */}
+        <div className="flex flex-col mt-3">
+          <label className="text-sm font-medium text-[#98786d] mb-1">
+            Client Image
+          </label>
+
+          <div className="flex items-center gap-3">
+            {/* 🟣 Styled Upload Button */}
+            <label className="cursor-pointer bg-[#98786d] text-white text-sm px-3 py-1 rounded-md hover:bg-[#7d645b] w-fit">
+              Upload New
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleFileChange(e, "client_image")}
+                className="hidden"
+              />
+            </label>
+
+            {/* 🟤 preview */}
+            {formData.client_image &&
+              typeof formData.client_image === "string" && (
+                <img
+                  src={formData.client_image}
+                  alt="Client"
+                  className="w-12 h-12 object-cover rounded-md border mt-2"
+                />
+              )}
+          </div>
+        </div>
+
         {/* Membership (read only) */}
         <div>
           <label className="text-sm font-medium text-[#98786d] mb-1 block">
@@ -465,6 +580,27 @@ export default function EditClientSection({
           />
           {errors.CNIC && (
             <p className="text-red-600 text-xs mt-1">{errors.CNIC}</p>
+          )}
+        </div>
+
+        {/* Passport number */}
+        <div>
+          <label className="text-sm font-medium text-[#98786d] mb-1 block">
+            Passport Number
+          </label>
+          <input
+            name="passport_number"
+            type="text"
+            value={formData.passport_number ?? ""}
+            onChange={handleChange}
+            className={`border rounded-md p-2 w-full ${
+              errors.passport_number ? "border-red-400" : "border-gray-300"
+            }`}
+          />
+          {errors.passport_number && (
+            <p className="text-red-600 text-xs mt-1">
+              {errors.passport_number}
+            </p>
           )}
         </div>
 
@@ -538,6 +674,94 @@ export default function EditClientSection({
           {errors.address && (
             <p className="text-red-600 text-xs mt-1">{errors.address}</p>
           )}
+        </div>
+
+        {/* 📄 Documents */}
+        <div className="flex flex-col mt-3">
+          <label className="text-sm font-medium text-[#98786d] mb-1">
+            Documents
+          </label>
+
+          {/* 🟣 Upload new documents */}
+          <div className="flex items-center gap-3">
+            <label className="cursor-pointer bg-[#98786d] text-white text-sm px-3 py-1 rounded-md hover:bg-[#7d645b] w-fit">
+              Upload New
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => handleFileChange(e, "documents")}
+                className="hidden"
+              />
+            </label>
+
+            {/* 🟢 Show total number of docs */}
+            <span className="text-gray-600 text-sm">
+              {Array.isArray(formData.documents) &&
+              formData.documents.length > 0
+                ? `${formData.documents.length} ${
+                    formData.documents.length === 1 ? "image" : "images"
+                  }`
+                : "No images"}
+            </span>
+          </div>
+
+          {/* 🧾 Document list with name + delete button */}
+          <div className="mt-3 flex flex-col gap-2">
+            {Array.isArray(formData.documents) &&
+              formData.documents.map((item: any, i: number) => {
+                // 🧠 Figure out filename
+                let fileName = "";
+                if (typeof item === "string") {
+                  const parts = item.split("/");
+                  const rawName = decodeURIComponent(parts[parts.length - 1]);
+                  // remove the leading timestamp if it exists (digits followed by a dash)
+                  fileName = rawName.replace(/^\d+-/, "");
+                } else if (item instanceof File) {
+                  // For new uploaded files
+                  fileName = item.name;
+                } else {
+                  fileName = "document";
+                }
+
+                return (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between bg-gray-50 border rounded-md px-2 py-1"
+                  >
+                    {/* Link or label for file */}
+                    {typeof item === "string" ? (
+                      <a
+                        href={item}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#98786d] underline text-sm truncate max-w-[180px]"
+                        title={fileName}
+                      >
+                        View {fileName}
+                      </a>
+                    ) : (
+                      <span
+                        className="text-sm text-gray-700 truncate max-w-[180px]"
+                        title={fileName}
+                      >
+                        View {fileName}
+                      </span>
+                    )}
+
+                    {/* ❌ Delete button */}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveDocument(i)}
+                      className="text-red-500 hover:text-red-700 ml-3 text-lg leading-none"
+                      title="Remove document"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                );
+              })}
+          </div>
         </div>
 
         {/* Floor dropdown */}
@@ -716,7 +940,33 @@ export default function EditClientSection({
             disabled={loading}
             className="bg-[#98786d] text-white px-6 py-2 rounded-md hover:bg-[#7d645b] disabled:opacity-60"
           >
-            {loading ? "Updating..." : "Update Client"}
+            {loading ? (
+              <div className="flex items-center justify-center gap-2">
+                <svg
+                  className="animate-spin h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  ></path>
+                </svg>
+                <span>Saving...</span>
+              </div>
+            ) : (
+              "Update Client"
+            )}
           </button>
         </div>
       </form>

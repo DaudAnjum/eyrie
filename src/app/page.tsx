@@ -41,7 +41,7 @@ export default function FloorPlansPage() {
   };
 
   return (
-    <div className="min-h-screen py-24">
+    <div className="min-h-screen py-24 background-image: url('/assets/floorApartments_bg.webp') bg-cover bg-center">
       <div className="container mx-auto px-6">
         {/* Header */}
         <motion.div

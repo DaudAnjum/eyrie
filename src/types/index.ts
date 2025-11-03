@@ -20,6 +20,7 @@ export interface Client {
   membership_number: string;
   client_name: string;
   CNIC: string;
+  passport_number: string;
   address: string;
   email: string;
   contact_number: string;
@@ -32,6 +33,8 @@ export interface Client {
   status: string;
   created_at?: string;
   updated_at?: string;
+  client_image?: File | null;
+  documents?: File[];
 }
 
 
