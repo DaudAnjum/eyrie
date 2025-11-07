@@ -18,19 +18,16 @@ export default function ViewClientSection({
         <h2 className="text-2xl font-semibold text-[#98786d] flex items-center gap-2">
           <FaInfoCircle className="text-[#98786d]" /> Client Details
         </h2>
-        {/* 🖼️ Client Image */}
-        <div>
-          <p className="text-[#98786d] font-medium">Client Image</p>
+        {/* 🖼️ Client Image (Circular) */}
+        <div className="w-32 h-32 rounded-full border overflow-hidden flex items-center justify-center bg-gray-50">
           {client.client_image ? (
             <img
               src={client.client_image}
               alt="Client"
-              className="mt-1 w-32 h-32 object-cover rounded-md border"
+              className="w-full h-full object-cover rounded-full"
             />
           ) : (
-            <p className="text-gray-500 text-sm bg-gray-50 p-2 rounded-md border border-gray-200">
-              No image
-            </p>
+            <span className="text-gray-500 text-sm">No image</span>
           )}
         </div>
       </div>
@@ -52,33 +49,71 @@ export default function ViewClientSection({
           <div className="md:col-span-2">
             <Detail label="Address" value={client.address} />
           </div>
-          <div className="md:col-span-2">
-            <p className="text-[#98786d] font-medium">Documents</p>
-            {Array.isArray(client.documents) && client.documents.length > 0 ? (
-              <ul className="list-disc ml-5 space-y-1">
-                {client.documents.map((url: string, i: number) => {
-                  const fileName = decodeURIComponent(
-                    url.split("/").pop() || `Document ${i + 1}`
-                  );
-                  return (
-                    <li key={i}>
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[#98786d] underline"
-                      >
-                        View {fileName}
-                      </a>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className="text-gray-500 text-sm bg-gray-50 p-2 rounded-md border border-gray-200">
-                No documents
+          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <p className="text-[#98786d] font-medium">Documents</p>
+              {Array.isArray(client.documents) &&
+              client.documents.length > 0 ? (
+                <ul className="list-disc ml-5 space-y-1">
+                  {client.documents.map((url: string, i: number) => {
+                    const fileName = decodeURIComponent(
+                      url.split("/").pop() || `Document ${i + 1}`
+                    );
+                    return (
+                      <li key={i}>
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 underline font-medium transition-colors"
+                        >
+                          View {fileName}
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="text-gray-500 text-sm bg-gray-50 p-2 rounded-md border border-gray-200">
+                  No documents
+                </p>
+              )}
+            </div>
+            {/* 📄 Relevent Notice Documents */}
+            <div>
+              <p className="text-[#98786d] font-medium mb-1">
+                Relevent Notice Documents
               </p>
-            )}
+              {Array.isArray(client.relevent_notice) &&
+              client.relevent_notice.length > 0 ? (
+                <ul className="list-disc ml-5 space-y-1">
+                  {[...client.relevent_notice]
+                    .slice()
+                    .reverse()
+                    .map((url, i) => {
+                      const fileName = decodeURIComponent(
+                        url.split("/").pop() || `Document ${i + 1}`
+                      );
+                      return (
+                        <li key={i}>
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 underline font-medium transition-colors"
+                          >
+                            View {fileName}
+                          </a>
+                        </li>
+                      );
+                    })}
+                </ul>
+              ) : (
+                <p className="text-gray-500 text-sm bg-gray-50 p-2 rounded-md border border-gray-200">
+                  No relevent documents
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -106,6 +141,19 @@ export default function ViewClientSection({
             label="Amount Payable"
             value={`Rs. ${client.amount_payable}`}
           />
+          <Detail
+            label="Allotment Date"
+            value={
+              client.created_at
+                ? new Date(client.created_at).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "short",
+                    day: "2-digit",
+                  })
+                : "—"
+            }
+          />
+
           <div className="mt-8">
             <span className="font-medium text-[#98786d]">Status:</span>{" "}
             <span

@@ -28,6 +28,7 @@ export default function CreateClientSection({
     address: "",
     email: "",
     contact_number: "",
+    other_contact: "",
     next_of_kin: "",
     apartment_id: "",
     installment_plan: "Monthly Plan",
@@ -37,6 +38,7 @@ export default function CreateClientSection({
     status: "Active",
     client_image: null as File | null,
     documents: [] as File[],
+    relevent_notice: [] as File[],
   });
 
   const [floorIds, setFloorIds] = useState<string[]>([]);
@@ -146,7 +148,7 @@ export default function CreateClientSection({
 
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    field: "client_image" | "documents"
+    field: "client_image" | "documents" | "relevent_notice"
   ) => {
     const files = e.target.files;
     if (!files) return;
@@ -155,7 +157,9 @@ export default function CreateClientSection({
       ...prev,
       ...(field === "client_image"
         ? { client_image: files[0] }
-        : { documents: Array.from(files) }),
+        : field === "documents"
+        ? { documents: Array.from(files) }
+        : { relevent_notice: Array.from(files) }),
     }));
   };
 
@@ -209,15 +213,24 @@ export default function CreateClientSection({
     }
 
     try {
-      // 🧩 Uploads (run in parallel for speed)
-      const [clientImageUrl, documentUrls] = await Promise.all([
-        formData.client_image
-          ? uploadFile("client-images", formData.client_image)
-          : Promise.resolve(null),
-        formData.documents && formData.documents.length > 0
-          ? uploadMultipleFiles("client-documents", formData.documents)
-          : Promise.resolve([]),
-      ]);
+      // 🟣 Uploads — now includes Relevent Notice Documents
+      const [clientImageUrl, documentUrls, releventNoticeUrls] =
+        await Promise.all([
+          formData.client_image
+            ? uploadFile("client-images", formData.client_image)
+            : Promise.resolve(null),
+
+          formData.documents && formData.documents.length > 0
+            ? uploadMultipleFiles("client-documents", formData.documents)
+            : Promise.resolve([]),
+
+          formData.relevent_notice && formData.relevent_notice.length > 0
+            ? uploadMultipleFiles(
+                "relevent-documents",
+                formData.relevent_notice
+              )
+            : Promise.resolve([]),
+        ]);
 
       // ✅ Prepare final data to send
       const dataToSend = {
@@ -226,6 +239,7 @@ export default function CreateClientSection({
         apartment_number: selectedApartment,
         client_image: clientImageUrl,
         documents: documentUrls,
+        relevent_notice: releventNoticeUrls,
       };
 
       const result = await createClient(dataToSend);
@@ -236,9 +250,11 @@ export default function CreateClientSection({
           membership_number: "",
           client_name: "",
           CNIC: "",
+          passport_number: "",
           address: "",
           email: "",
           contact_number: "",
+          other_contact: "",
           next_of_kin: "",
           apartment_id: "",
           discount: "0",
@@ -325,6 +341,7 @@ export default function CreateClientSection({
           { label: "Passport Number", name: "passport_number" },
           { label: "Email", name: "email" },
           { label: "Contact Number", name: "contact_number" },
+          { label: "Other Contact Number", name: "other_contact" },
           { label: "Next of Kin", name: "next_of_kin" },
         ].map((field) => (
           <div key={field.name} className="flex flex-col">
@@ -375,6 +392,21 @@ export default function CreateClientSection({
             name="documents"
             multiple
             onChange={(e) => handleFileChange(e, "documents")}
+            className="border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-[#98786d]"
+          />
+        </div>
+
+        {/* 📚 Relevent Notice Documents Upload (Multiple) */}
+        <div className="flex flex-col">
+          <label className="text-sm font-medium text-[#98786d] mb-1">
+            Relevent Notice Documents
+          </label>
+          <input
+            type="file"
+            accept="image/*"
+            name="relevent_notice"
+            multiple
+            onChange={(e) => handleFileChange(e, "relevent_notice")}
             className="border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-[#98786d]"
           />
         </div>
@@ -485,6 +517,19 @@ export default function CreateClientSection({
             }
             readOnly
             className="border border-gray-300 rounded-md p-2 bg-gray-100 cursor-not-allowed text-gray-700"
+          />
+        </div>
+
+        {/* Allotment Date (display only) */}
+        <div>
+          <label className="text-sm font-medium text-[#98786d] mb-1 block">
+            Allotment Date
+          </label>
+          <input
+            type="text"
+            value={new Date().toLocaleDateString()}
+            readOnly
+            className="border rounded-md p-2 w-full bg-gray-100 text-gray-600"
           />
         </div>
 

@@ -25,6 +25,7 @@ export default function EditClientSection({
     address: "",
     email: "",
     contact_number: "",
+    other_contact: "",
     next_of_kin: "",
     apartment_id: "",
     apartment_number: "",
@@ -35,6 +36,7 @@ export default function EditClientSection({
     status: "Active",
     client_image: null as File | null,
     documents: [] as File[],
+    relevent_notice: [] as File[],
   });
 
   // floor / apartment related state
@@ -64,6 +66,7 @@ export default function EditClientSection({
       address: client.address ?? "",
       email: client.email ?? "",
       contact_number: client.contact_number ?? "",
+      other_contact: client.other_contact ?? "",
       next_of_kin: client.next_of_kin ?? "",
       apartment_id: client.apartment_id ?? "",
       apartment_number: client.apartment_number ?? "",
@@ -73,10 +76,12 @@ export default function EditClientSection({
         client.amount_payable !== undefined && client.amount_payable !== null
           ? client.amount_payable
           : "",
+      created_at: client.created_at ?? "",
       agent_name: client.agent_name ?? "",
       status: client.status ?? "Active",
       client_image: client.client_image ?? null,
       documents: client.documents ?? [],
+      relevent_notice: client.relevent_notice ?? [],
     }));
 
     // If client has apartment_id, fetch that apartment to get floor & number & price
@@ -252,6 +257,13 @@ export default function EditClientSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [basePrice, formData.discount]);
 
+  // debug watcher - safe top-level hook to inspect changes to relevent_notice (remove in prod)
+  useEffect(() => {
+    console.log("📸 formData.relevent_notice:", formData.relevent_notice);
+    console.log("📸 formData.client_image:", formData.client_image);
+    console.log("📸 formData.documents:", formData.documents);
+  });
+
   // -- handlers --
 
   const handleChange = (
@@ -331,18 +343,19 @@ export default function EditClientSection({
 
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    field: "client_image" | "documents"
+    field: "client_image" | "documents" | "relevent_notice"
   ) => {
     const files = e.target.files;
     if (!files) return;
 
     if (field === "client_image") {
+      // single file — overwrite
       setFormData((prev: any) => ({
         ...prev,
         client_image: files[0],
       }));
     } else if (field === "documents") {
-      // 🟢 Append new files to existing documents instead of replacing
+      // multiple — append new files
       setFormData((prev: any) => {
         const existingDocs = Array.isArray(prev.documents)
           ? prev.documents
@@ -350,6 +363,17 @@ export default function EditClientSection({
         return {
           ...prev,
           documents: [...existingDocs, ...Array.from(files)],
+        };
+      });
+    } else if (field === "relevent_notice") {
+      // 🟣 handle Relevent Notice Documents (append mode)
+      setFormData((prev: any) => {
+        const existingNotices = Array.isArray(prev.relevent_notice)
+          ? prev.relevent_notice
+          : [];
+        return {
+          ...prev,
+          relevent_notice: [...existingNotices, ...Array.from(files)],
         };
       });
     }
@@ -362,6 +386,16 @@ export default function EditClientSection({
         : [];
       updatedDocs.splice(index, 1); // remove clicked document
       return { ...prev, documents: updatedDocs };
+    });
+  };
+
+  const handleRemoveReleventNotice = (index: number) => {
+    setFormData((prev: any) => {
+      const updatedNotices = Array.isArray(prev.relevent_notice)
+        ? [...prev.relevent_notice]
+        : [];
+      updatedNotices.splice(index, 1); // remove clicked file or URL
+      return { ...prev, relevent_notice: updatedNotices };
     });
   };
 
@@ -404,9 +438,11 @@ export default function EditClientSection({
           apartmentIdToSave = aptRow.id;
         }
       }
+
       // 🟢 Handle file uploads before preparing updatedData
       let clientImageUrl = formData.client_image;
       let documentUrls: string[] = [];
+      let updatedReleventNoticeUrls: string[] = [];
 
       // 🧩 1️⃣ Upload new client image if changed
       if (formData.client_image instanceof File) {
@@ -443,17 +479,42 @@ export default function EditClientSection({
         documentUrls = [];
       }
 
-      // 🧩 3️⃣ Prepare final data to send
+      // 🧩 3️⃣ Handle Relevent Notice Documents — same pattern
+      if (Array.isArray(formData.relevent_notice)) {
+        const existingNotices = formData.relevent_notice.filter(
+          (item: any) => typeof item === "string"
+        );
+        const newNoticeFiles = formData.relevent_notice.filter(
+          (item: any) => item instanceof File
+        );
+
+        if (newNoticeFiles.length > 0) {
+          const uploadedNotices = await uploadMultipleFiles(
+            "relevent-documents",
+            newNoticeFiles
+          );
+          updatedReleventNoticeUrls = [...existingNotices, ...uploadedNotices]; // 🟢 merge old + new
+        } else {
+          updatedReleventNoticeUrls = existingNotices;
+        }
+      } else {
+        updatedReleventNoticeUrls = [];
+      }
+
+      // 🧩 4️⃣ Prepare final data to send
       const updatedData: any = {
         ...formData,
         apartment_id: apartmentIdToSave,
         client_image: clientImageUrl,
         documents: documentUrls,
+        relevent_notice: updatedReleventNoticeUrls, // 🆕 added new field
         updated_at: new Date().toISOString(),
       };
 
       // sanitize UI-only fields
       const clean = sanitizeForUpdate(updatedData);
+
+      console.log("Updating client with data:", clean);
 
       const result = await updateClient(client.membership_number, clean);
 
@@ -491,6 +552,17 @@ export default function EditClientSection({
     );
   }
 
+  console.log(
+    "typeof formData.relevent_notice:",
+    typeof formData.relevent_notice
+  );
+  console.log("isArray:", Array.isArray(formData.relevent_notice));
+  console.log("value:", formData.relevent_notice);
+
+  console.log("typeof formData.documents:", typeof formData.documents);
+  console.log("isArray:", Array.isArray(formData.documents));
+  console.log("value:", formData.documents);
+
   return (
     <div className="space-y-6 bg-white p-6 rounded-lg shadow max-h-[80vh] overflow-y-auto">
       {/* Header */}
@@ -505,8 +577,8 @@ export default function EditClientSection({
         className="grid grid-cols-1 md:grid-cols-2 gap-4"
       >
         {/* 🖼️ Client Image */}
-        <div className="flex flex-col mt-3">
-          <label className="text-sm font-medium text-[#98786d] mb-1">
+        <div>
+          <label className="text-sm font-medium text-[#98786d] mb-1 block">
             Client Image
           </label>
 
@@ -640,6 +712,24 @@ export default function EditClientSection({
           )}
         </div>
 
+        {/* Other Contact */}
+        <div>
+          <label className="text-sm font-medium text-[#98786d] mb-1 block">
+            Other Contact Number
+          </label>
+          <input
+            name="other_contact"
+            value={formData.other_contact ?? ""}
+            onChange={handleChange}
+            className={`border rounded-md p-2 w-full ${
+              errors.other_contact ? "border-red-400" : "border-gray-300"
+            }`}
+          />
+          {errors.other_contact && (
+            <p className="text-red-600 text-xs mt-1">{errors.other_contact}</p>
+          )}
+        </div>
+
         {/* Next of Kin */}
         <div>
           <label className="text-sm font-medium text-[#98786d] mb-1 block">
@@ -677,8 +767,8 @@ export default function EditClientSection({
         </div>
 
         {/* 📄 Documents */}
-        <div className="flex flex-col mt-3">
-          <label className="text-sm font-medium text-[#98786d] mb-1">
+        <div>
+          <label className="text-sm font-medium text-[#98786d] mb-1 block">
             Documents
           </label>
 
@@ -706,61 +796,218 @@ export default function EditClientSection({
             </span>
           </div>
 
-          {/* 🧾 Document list with name + delete button */}
+          {/* 🧾 Document list with name + delete button + upload date */}
           <div className="mt-3 flex flex-col gap-2">
             {Array.isArray(formData.documents) &&
-              formData.documents.map((item: any, i: number) => {
-                // 🧠 Figure out filename
-                let fileName = "";
-                if (typeof item === "string") {
-                  const parts = item.split("/");
-                  const rawName = decodeURIComponent(parts[parts.length - 1]);
-                  // remove the leading timestamp if it exists (digits followed by a dash)
-                  fileName = rawName.replace(/^\d+-/, "");
-                } else if (item instanceof File) {
-                  // For new uploaded files
-                  fileName = item.name;
-                } else {
-                  fileName = "document";
-                }
+              formData.documents
+                .slice()
+                .reverse()
+                .map((item: any, i: number) => {
+                  // 🧠 Figure out filename
+                  let fileName = "";
+                  if (typeof item === "string") {
+                    const parts = item.split("/");
+                    const rawName = decodeURIComponent(parts[parts.length - 1]);
+                    fileName = rawName.replace(/^\d+-/, "");
+                  } else if (item instanceof File) {
+                    fileName = item.name;
+                  } else {
+                    fileName = "document";
+                  }
 
-                return (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between bg-gray-50 border rounded-md px-2 py-1"
-                  >
-                    {/* Link or label for file */}
-                    {typeof item === "string" ? (
-                      <a
-                        href={item}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[#98786d] underline text-sm truncate max-w-[180px]"
-                        title={fileName}
-                      >
-                        View {fileName}
-                      </a>
-                    ) : (
-                      <span
-                        className="text-sm text-gray-700 truncate max-w-[180px]"
-                        title={fileName}
-                      >
-                        View {fileName}
-                      </span>
-                    )}
+                  // 🕒 Try to extract timestamp from filename
+                  let addedDate = "";
+                  if (typeof item === "string") {
+                    const match = item.match(/\/(\d+)-/);
+                    if (match && match[1]) {
+                      const ts = parseInt(match[1]);
+                      if (!isNaN(ts)) {
+                        addedDate = new Date(ts).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        });
+                      }
+                    }
+                  } else if (item instanceof File) {
+                    addedDate = new Date().toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    });
+                  }
 
-                    {/* ❌ Delete button */}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveDocument(i)}
-                      className="text-red-500 hover:text-red-700 ml-3 text-lg leading-none"
-                      title="Remove document"
+                  return (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between bg-gray-50 border rounded-md px-2 py-1"
                     >
-                      ✕
-                    </button>
-                  </div>
-                );
-              })}
+                      {/* File link or label */}
+                      {typeof item === "string" ? (
+                        <a
+                          href={item}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#98786d] underline text-sm truncate max-w-[180px]"
+                          title={fileName}
+                        >
+                          View {fileName}
+                        </a>
+                      ) : (
+                        <span
+                          className="text-sm text-gray-700 truncate max-w-[180px]"
+                          title={fileName}
+                        >
+                          View {fileName}
+                        </span>
+                      )}
+
+                      {/* Date + Delete */}
+                      <div className="flex items-center gap-3">
+                        {addedDate && (
+                          <span className="text-xs text-gray-500">
+                            {addedDate}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleRemoveDocument(
+                              (formData.documents?.length || 0) - 1 - i
+                            )
+                          }
+                          className="text-red-500 hover:text-red-700 text-lg leading-none"
+                          title="Remove document"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+          </div>
+        </div>
+
+        {/* 📄 Relevent Notice Documents Upload (Multiple) */}
+        <div>
+          <label className="text-sm font-medium text-[#98786d] mb-1 block">
+            Relevent Notice Documents
+          </label>
+
+          {/* 🟣 Upload new documents */}
+          <div className="flex items-center gap-3">
+            <label className="cursor-pointer bg-[#98786d] text-white text-sm px-3 py-1 rounded-md hover:bg-[#7d645b] w-fit">
+              Upload New
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => handleFileChange(e, "relevent_notice")}
+                className="hidden"
+              />
+            </label>
+
+            {/* 🟢 Show total number of docs */}
+            <span className="text-gray-600 text-sm">
+              {Array.isArray(formData.relevent_notice) &&
+              formData.relevent_notice.length > 0
+                ? `${formData.relevent_notice.length} ${
+                    formData.relevent_notice.length === 1 ? "image" : "images"
+                  }`
+                : "No images"}
+            </span>
+          </div>
+
+          {/* 🧾 Document list with name + delete button */}
+          <div className="mt-3 flex flex-col gap-2">
+            {Array.isArray(formData.relevent_notice) &&
+              formData.relevent_notice
+                .slice()
+                .reverse()
+                .map((item: any, i: number) => {
+                  // 🧠 Figure out filename
+                  let fileName = "";
+                  if (typeof item === "string") {
+                    const parts = item.split("/");
+                    const rawName = decodeURIComponent(parts[parts.length - 1]);
+                    fileName = rawName.replace(/^\d+-/, "");
+                  } else if (item instanceof File) {
+                    fileName = item.name;
+                  } else {
+                    fileName = "document";
+                  }
+
+                  //  🕒  date label (uses filename timestamp if available)
+                  let addedDate = "";
+                  if (typeof item === "string") {
+                    const match = item.match(/\/(\d+)-/);
+                    if (match && match[1]) {
+                      const ts = parseInt(match[1]);
+                      if (!isNaN(ts)) {
+                        addedDate = new Date(ts).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        });
+                      }
+                    }
+                  } else if (item instanceof File) {
+                    addedDate = new Date().toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    });
+                  }
+
+                  return (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between bg-gray-50 border rounded-md px-2 py-1"
+                    >
+                      {/* Link or label for file */}
+                      {typeof item === "string" ? (
+                        <a
+                          href={item}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#98786d] underline text-sm truncate max-w-[180px]"
+                          title={fileName}
+                        >
+                          View {fileName}
+                        </a>
+                      ) : (
+                        <span
+                          className="text-sm text-gray-700 truncate max-w-[180px]"
+                          title={fileName}
+                        >
+                          View {fileName}
+                        </span>
+                      )}
+
+                      <div className="flex items-center gap-3">
+                        {addedDate && (
+                          <span className="text-xs text-gray-500 mt-0.5">
+                            {addedDate}
+                          </span>
+                        )}
+
+                        {/* ❌ Delete button */}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleRemoveReleventNotice(
+                              (formData.relevent_notice?.length || 0) - 1 - i
+                            )
+                          }
+                          className="text-red-500 hover:text-red-700 ml-2 text-lg leading-none"
+                          title="Remove document"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
           </div>
         </div>
 
@@ -882,6 +1129,27 @@ export default function EditClientSection({
           {errors.amount_payable && (
             <p className="text-red-600 text-xs mt-1">{errors.amount_payable}</p>
           )}
+        </div>
+
+        {/* 🗓️ Allotment Date (Read-Only) */}
+        <div>
+          <label className="text-sm font-medium text-[#98786d] mb-1 block">
+            Allotment Date
+          </label>
+          <input
+            name="created_at"
+            value={
+              formData.created_at
+                ? new Date(formData.created_at).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "2-digit",
+                    year: "numeric",
+                  })
+                : "—"
+            }
+            className="border border-gray-300 rounded-md p-2 bg-gray-100 cursor-not-allowed w-full text-gray-700"
+            readOnly
+          />
         </div>
 
         {/* Agent */}

@@ -35,6 +35,7 @@ export const createClient = async (clientData: any) => {
           address: clientData.address,
           email: clientData.email,
           contact_number: clientData.contact_number,
+          other_contact: clientData.other_contact,
           next_of_kin: clientData.next_of_kin,
           apartment_id: apartment.id,
           discount: clientData.discount,
@@ -44,6 +45,7 @@ export const createClient = async (clientData: any) => {
           status: clientData.status,
           client_image: clientData.client_image || null,
           documents: clientData.documents || [],
+          relevent_notice: clientData.relevent_notice || [],
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
@@ -211,6 +213,8 @@ export async function uploadFile(bucket: string, file: File) {
 export async function uploadMultipleFiles(bucket: string, files: File[]) {
   const urls: string[] = [];
   for (const file of files) {
+    console.log(`Uploading to bucket: ${bucket}, file: ${file.name}`);
+
     const url = await uploadFile(bucket, file);
     if (url) urls.push(url);
   }

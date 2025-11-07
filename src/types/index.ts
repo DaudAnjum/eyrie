@@ -24,6 +24,7 @@ export interface Client {
   address: string;
   email: string;
   contact_number: string;
+  other_contact: string;
   next_of_kin: string;
   apartment_id: string | null;
   discount: number;
@@ -35,6 +36,7 @@ export interface Client {
   updated_at?: string;
   client_image?: File | null;
   documents?: File[];
+  relevent_notice?: File[];
 }
 
 
