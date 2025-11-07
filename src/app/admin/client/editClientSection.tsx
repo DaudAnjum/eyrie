@@ -131,10 +131,16 @@ export default function EditClientSection({
             new Set(
               data
                 .map((apt: any) => apt.floor_id)
-                .filter((id: any) => id !== null && id !== undefined)
+                .filter(
+                  (id: any) => id !== null && id.toLowerCase() !== "basement"
+                )
             )
           );
           const desiredOrder = [
+            "lower-ground",
+            "ground",
+            "first",
+            "second",
             "third",
             "fourth",
             "fifth",

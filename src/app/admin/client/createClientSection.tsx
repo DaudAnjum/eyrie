@@ -66,10 +66,17 @@ export default function CreateClientSection({
             new Set(
               data
                 .map((apt) => apt.floor_id)
-                .filter((id): id is string => id !== null)
+                .filter(
+                  (id): id is string =>
+                    id !== null && id.toLowerCase() !== "basement"
+                )
             )
           );
           const desiredOrder = [
+            "lower-ground",
+            "ground",
+            "first",
+            "second",
             "third",
             "fourth",
             "fifth",
