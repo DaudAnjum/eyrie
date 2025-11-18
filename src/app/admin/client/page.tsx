@@ -94,7 +94,7 @@ const ClientPage = () => {
             ) : (
               <table className="min-w-full border-collapse">
                 <thead>
-                  <tr className="bg-background text-left text-text md-5 shadow">
+                  <tr className="bg-primary text-left text-white md-5 shadow">
                     <th className="p-3 border-b ">Membership #</th>
                     <th className="p-3 border-b ">Client Name</th>
                     <th className="p-3 border-b ">CNIC</th>
@@ -120,7 +120,7 @@ const ClientPage = () => {
                       <tr
                         key={client.membership_number}
                         onClick={() => handleClientClick(client)}
-                        className="hover:bg-[#fdf7f5] cursor-pointer transition"
+                        className="hover:bg-gray-100 cursor-pointer transition"
                       >
                         <td className="p-3 border-b">
                           {client.membership_number}

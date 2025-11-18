@@ -26,7 +26,6 @@ export interface Client {
   contact_number: string;
   other_contact: string;
   next_of_kin: string;
-  apartment_id: string | null;
   discount: number;
   amount_payable: number;
   installment_plan: string;
@@ -37,6 +36,45 @@ export interface Client {
   client_image?: File | null;
   documents?: File[];
   relevent_notice?: File[];
+  notes?: string;
+}
+
+export interface Intermediate {
+  id: number;
+  client_membership: string;
+  apartment_id: string;
+  alloted_date: string;
+}
+
+// Type for intermediate table query results with nested apartment data
+export interface IntermediateWithApartment {
+  id: number;
+  apartment_id: string;
+  alloted_date: string;
+  apartments: {
+    id: string;
+    number: string;
+    type: string;
+    floor_id: string;
+    price: number;
+    area: number | null;
+    bedrooms: number | null;
+    bathrooms: number | null;
+  };
+}
+
+// Type for client apartment info (flattened structure)
+export interface ClientApartment {
+  id: string;
+  number: string;
+  type: string;
+  floor_id: string;
+  price: number;
+  area: number | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  alloted_date: string;
+  intermediate_id: number;
 }
 
 

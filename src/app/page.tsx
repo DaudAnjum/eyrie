@@ -42,10 +42,13 @@ export default function FloorPlansPage() {
 
   return (
     <div
-      className="min-h-screen py-24 bg-cover bg-center inset-0 bg-black/50 backdrop-blur-[2px]"
+      className="min-h-screen py-2 bg-cover bg-center bg-fixed relative"
       style={{ backgroundImage: "url('/assets/floorApartments_bg.webp')" }}
     >
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]">
+      {/* Overlay */}
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"></div>
+      {/* Content */}
+      <div className="relative min-h-screen">
         <div className="container mx-auto px-6">
           {/* Header */}
           <motion.div

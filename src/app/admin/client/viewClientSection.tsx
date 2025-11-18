@@ -1,6 +1,11 @@
 "use client";
 
 import { FaUser, FaHome, FaMoneyBillWave, FaInfoCircle } from "react-icons/fa";
+import {
+  getClientApartments,
+  fetchApartmentPricesByIds,
+} from "./clientFunctions";
+import React, { useEffect, useState } from "react";
 
 interface ViewClientSectionProps {
   client: any;
@@ -12,7 +17,7 @@ export default function ViewClientSection({
   onClose,
 }: ViewClientSectionProps) {
   return (
-    <div className="space-y-6 bg-white p-6 rounded-lg shadow max-h-[80vh] overflow-y-auto">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between border-b pb-3">
         <h2 className="text-2xl font-semibold text-[#98786d] flex items-center gap-2">
@@ -118,8 +123,26 @@ export default function ViewClientSection({
         </div>
       </div>
 
-      {/* Apartment Information */}
+      {/* 🏢 Apartment Information */}
       <div>
+        <h3 className="text-lg font-semibold text-[#98786d] mb-2 flex items-center gap-2">
+          <FaHome /> Apartment Information
+        </h3>
+
+        <ApartmentList membershipNumber={client.membership_number} />
+      </div>
+
+      {/* 💰 Payment Information */}
+      <div>
+        <h3 className="text-lg font-semibold text-[#98786d] mb-2 flex items-center gap-2">
+          <FaMoneyBillWave /> Payment Information
+        </h3>
+
+        <PaymentInfo client={client} />
+      </div>
+
+      {/* Apartment Information */}
+      {/* <div>
         <h3 className="text-lg font-semibold text-[#98786d] mb-2 flex items-center gap-2">
           <FaHome /> Apartment Information
         </h3>
@@ -127,10 +150,10 @@ export default function ViewClientSection({
           <Detail label="Floor" value={client.floor_name} />
           <Detail label="Apartment" value={client.apartment_type} />
         </div>
-      </div>
+      </div> */}
 
       {/* Payment Information */}
-      <div>
+      {/* <div>
         <h3 className="text-lg font-semibold text-[#98786d] mb-2 flex items-center gap-2">
           <FaMoneyBillWave /> Payment Information
         </h3>
@@ -141,18 +164,9 @@ export default function ViewClientSection({
             label="Amount Payable"
             value={`Rs. ${client.amount_payable}`}
           />
-          <Detail
-            label="Allotment Date"
-            value={
-              client.created_at
-                ? new Date(client.created_at).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "short",
-                    day: "2-digit",
-                  })
-                : "—"
-            }
-          />
+          <div className="md:col-span-2">
+            <Detail label="Notes" value={client.notes} />
+          </div>
 
           <div className="mt-8">
             <span className="font-medium text-[#98786d]">Status:</span>{" "}
@@ -165,7 +179,7 @@ export default function ViewClientSection({
             </span>
           </div>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }
@@ -178,6 +192,135 @@ function Detail({ label, value }: { label: string; value: any }) {
       <p className="text-gray-700 bg-gray-50 p-2 rounded-md border border-gray-200">
         {value || "—"}
       </p>
+    </div>
+  );
+}
+
+// 🏢 Fetch and display apartment list
+function ApartmentList({ membershipNumber }: { membershipNumber: string }) {
+  const [apartments, setApartments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await getClientApartments(membershipNumber);
+      setApartments(data || []);
+      setLoading(false);
+    };
+    load();
+  }, [membershipNumber]);
+
+  if (loading) {
+    return <p className="text-gray-500 text-sm">Loading apartments...</p>;
+  }
+
+  if (!apartments.length) {
+    return (
+      <p className="text-gray-500 text-sm bg-gray-50 p-2 rounded-md border border-gray-200">
+        No apartments assigned
+      </p>
+    );
+  }
+
+  return (
+    <ul className="space-y-2 bg-gray-50 p-3 rounded-md border border-gray-200">
+      {apartments.map((apt) => (
+        <li key={apt.id} className="flex justify-between text-sm text-gray-700">
+          <span>
+            <span className="font-medium text-[#98786d]">{apt.type}</span> —{" "}
+            {apt.floor_id.charAt(0).toUpperCase() + apt.floor_id.slice(1)} floor
+          </span>
+          <span className="text-gray-500">
+            Allotted: {new Date(apt.alloted_date).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "short",
+              day: "2-digit",
+            })}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// 💰 Payment Info Section
+function PaymentInfo({ client }: { client: any }) {
+  const [apartmentPrices, setApartmentPrices] = useState<number[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadPrices = async () => {
+      // Fetch apartments from intermediate table using membership number
+      const { data: apartments } = await getClientApartments(client.membership_number);
+
+      if (apartments && apartments.length > 0) {
+        // Extract prices from apartments
+        const prices = apartments.map((apt: any) => apt.price || 0);
+        setApartmentPrices(prices);
+      }
+      setLoading(false);
+    };
+    loadPrices();
+  }, [client.membership_number]);
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+      <Detail label="Installment Plan" value={client.installment_plan} />
+      <Detail label="Discount" value={`${client.discount}%`} />
+
+      {/* Amount Payable */}
+      <div>
+        <p className="text-[#98786d] font-medium">Amount Payable</p>
+
+        {/* 🧮 Price Breakdown */}
+        <p className="text-gray-700 bg-gray-50 p-2 rounded-md border border-gray-200">
+          {apartmentPrices.length > 0
+            ? apartmentPrices
+                .map((price, i) =>
+                  new Intl.NumberFormat("en-PK", {
+                    style: "currency",
+                    currency: "PKR",
+                    maximumFractionDigits: 0,
+                  }).format(price)
+                )
+                .join(" + ")
+            : "—"}
+        </p>
+
+        {/* 💰 Total Below */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-1 mt-1">
+          <div className="text-sm text-gray-700">
+            <span className="font-semibold">Total:</span>{" "}
+            {client.amount_payable
+              ? new Intl.NumberFormat("en-PK", {
+                  style: "currency",
+                  currency: "PKR",
+                  maximumFractionDigits: 0,
+                }).format(client.amount_payable)
+              : "Rs. 0"}
+          </div>
+          <div className="text-xs text-gray-500 italic">
+            <p>(after {client.discount}% discount)</p>
+          </div>
+        </div>
+      </div>
+
+      <Detail label="Agent Name" value={client.agent_name} />
+
+      <div className="md:col-span-2">
+        <Detail label="Notes" value={client.notes} />
+      </div>
+
+      <div className="mt-8">
+        <span className="font-medium text-[#98786d]">Status:</span>{" "}
+        <span
+          className={`font-semibold ${
+            client.status === "Active" ? "text-green-600" : "text-red-600"
+          }`}
+        >
+          {client.status}
+        </span>
+      </div>
     </div>
   );
 }

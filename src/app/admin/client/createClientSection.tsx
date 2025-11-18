@@ -30,7 +30,7 @@ export default function CreateClientSection({
     contact_number: "",
     other_contact: "",
     next_of_kin: "",
-    apartment_id: "",
+    apartment_ids: "",
     installment_plan: "Monthly Plan",
     discount: "0",
     amount_payable: "",
@@ -39,19 +39,21 @@ export default function CreateClientSection({
     client_image: null as File | null,
     documents: [] as File[],
     relevent_notice: [] as File[],
+    notes: "",
   });
 
   const [floorIds, setFloorIds] = useState<string[]>([]);
   const [apartments, setApartments] = useState<any[]>([]);
   const [selectedFloor, setSelectedFloor] = useState("");
   const [selectedApartment, setSelectedApartment] = useState("");
+  const [selectedApartments, setSelectedApartments] = useState<any[]>([]); // 🆕 store multiple apartments
   const [basePrice, setBasePrice] = useState<number | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // 🧩 Fetch floors in order
+  // 🧩 Fetch floors (exclude basement)
   useEffect(() => {
     const fetchFloors = async () => {
       try {
@@ -104,39 +106,153 @@ export default function CreateClientSection({
       const { data, error } = await supabase
         .from("apartments")
         .select("*")
-        .eq("floor_id", selectedFloor);
+        .eq("floor_id", selectedFloor)
+        .eq("status", "available"); // 🆕 Only show available apartments
       if (error) throw error;
       setApartments(data || []);
     };
     fetchApartments();
   }, [selectedFloor]);
 
-  // 🧮 Fetch base price when apartment changes
+  // 🏢 Add selected apartment (multiple support)
   useEffect(() => {
+    if (!selectedApartment) return;
+
     const selectedApt = apartments.find((a) => a.number === selectedApartment);
     if (selectedApt) {
-      setFormData((prev: any) => ({
-        ...prev,
-        apartment_id: selectedApt.id,
-      }));
-      setBasePrice(selectedApt.price);
+      setSelectedApartments((prev) => {
+        // prevent duplicates
+        if (prev.find((apt) => apt.id === selectedApt.id)) return prev;
+        return [...prev, selectedApt];
+      });
+      setSelectedApartment(""); // reset dropdown for next selection
     }
   }, [selectedApartment]);
 
+  // 🔄 Update formData.apartment_ids whenever selectedApartments changes
+  useEffect(() => {
+    setFormData((prev: any) => ({
+      ...prev,
+      apartment_ids: selectedApartments.map((apt) => apt.id),
+    }));
+  }, [selectedApartments]);
+
+  // // 🧩 Fetch floors in order
+  // useEffect(() => {
+  //   const fetchFloors = async () => {
+  //     try {
+  //       const { data, error } = await supabase
+  //         .from("apartments")
+  //         .select("floor_id")
+  //         .order("floor_id", { ascending: true });
+
+  //       if (error) throw error;
+  //       if (data) {
+  //         const uniqueFloors = Array.from(
+  //           new Set(
+  //             data
+  //               .map((apt) => apt.floor_id)
+  //               .filter(
+  //                 (id): id is string =>
+  //                   id !== null && id.toLowerCase() !== "basement"
+  //               )
+  //           )
+  //         );
+  //         const desiredOrder = [
+  //           "lower-ground",
+  //           "ground",
+  //           "first",
+  //           "second",
+  //           "third",
+  //           "fourth",
+  //           "fifth",
+  //           "sixth",
+  //           "seventh",
+  //           "eighth",
+  //           "ninth",
+  //         ];
+  //         const orderedFloors = desiredOrder.filter((f) =>
+  //           uniqueFloors.includes(f)
+  //         );
+  //         setFloorIds(orderedFloors);
+  //       }
+  //     } catch (err: any) {
+  //       console.error("fetchFloors error:", err?.message ?? err);
+  //     }
+  //   };
+  //   fetchFloors();
+  // }, []);
+
+  // // 🏢 Fetch apartments when floor changes
+  // useEffect(() => {
+  //   const fetchApartments = async () => {
+  //     if (!selectedFloor) return;
+  //     const { data, error } = await supabase
+  //       .from("apartments")
+  //       .select("*")
+  //       .eq("floor_id", selectedFloor);
+  //     if (error) throw error;
+  //     setApartments(data || []);
+  //   };
+  //   fetchApartments();
+  // }, [selectedFloor]);
+
+  // // 🧮 Fetch base price when apartment changes
+  // useEffect(() => {
+  //   const selectedApt = apartments.find((a) => a.number === selectedApartment);
+  //   if (selectedApt) {
+  //     setFormData((prev: any) => ({
+  //       ...prev,
+  //       apartment_ids: [...(prev.apartment_ids || []), selectedApt.id],
+  //     }));
+  //     setBasePrice(selectedApt.price);
+  //   }
+  // }, [selectedApartment]);
+
   // 🧮 Calculate amount payable (discount logic)
+  // useEffect(() => {
+  //   const discountValue =
+  //     formData.discount && !isNaN(Number(formData.discount))
+  //       ? Number(formData.discount)
+  //       : 0;
+  //   if (basePrice != null) {
+  //     const finalPrice = basePrice - (basePrice * discountValue) / 100;
+  //     setFormData((prev: any) => ({
+  //       ...prev,
+  //       amount_payable: Math.round(finalPrice),
+  //     }));
+  //   }
+  // }, [basePrice, formData.discount]);
+
+  // 🧮 Calculate and display amount payable (for multiple apartments)
   useEffect(() => {
     const discountValue =
       formData.discount && !isNaN(Number(formData.discount))
         ? Number(formData.discount)
         : 0;
-    if (basePrice != null) {
-      const finalPrice = basePrice - (basePrice * discountValue) / 100;
-      setFormData((prev: any) => ({
-        ...prev,
-        amount_payable: Math.round(finalPrice),
-      }));
-    }
-  }, [basePrice, formData.discount]);
+
+    // 🟢 Gather all selected apartments' prices
+    const totalBasePrice = selectedApartments.reduce(
+      (sum, apt) => sum + (Number(apt.price) || 0),
+      0
+    );
+
+    // 🟢 Prepare a readable breakdown (e.g., "500000 + 650000")
+    const breakdown = selectedApartments
+      .map((apt) => (apt.price ? Number(apt.price).toLocaleString() : "0"))
+      .join(" + ");
+
+    // 🧮 Apply discount to total
+    const discountedTotal =
+      totalBasePrice - (totalBasePrice * discountValue) / 100;
+
+    // 🟢 Store total numeric value in formData.amount_payable
+    setFormData((prev: any) => ({
+      ...prev,
+      amount_payable: Math.round(discountedTotal),
+      amount_breakdown: breakdown, // 🆕 store visual breakdown (not saved to DB)
+    }));
+  }, [selectedApartments, formData.discount]);
 
   // 🧮 Generate membership number
   useEffect(() => {
@@ -177,6 +293,7 @@ export default function CreateClientSection({
     setGeneralError(null);
 
     const newErrors: Record<string, string> = {};
+    console.log("Form Data on Submit:", formData);
 
     // ✅ Required field validation
     const requiredFields = [
@@ -203,8 +320,13 @@ export default function CreateClientSection({
 
     // ✅ Ensure floor and apartment are selected
     if (!selectedFloor) newErrors.floor_id = "Please select a floor.";
-    if (!selectedApartment)
-      newErrors.apartment_id = "Please select an apartment.";
+    if (
+      !formData.apartment_ids ||
+      !Array.isArray(formData.apartment_ids) ||
+      formData.apartment_ids.length === 0
+    ) {
+      newErrors.apartment_ids = "Please select at least one apartment.";
+    }
 
     // ✅ Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -242,8 +364,12 @@ export default function CreateClientSection({
       // ✅ Prepare final data to send
       const dataToSend = {
         ...formData,
-        floor_id: selectedFloor,
-        apartment_number: selectedApartment,
+        apartments: selectedApartments.map((apt) => ({
+          floor_id: apt.floor_id,
+          apartment_number: apt.number,
+        })), // 🆕 multiple apartments support
+        // floor_id: selectedFloor,
+        // apartment_number: selectedApartment,
         client_image: clientImageUrl,
         documents: documentUrls,
         relevent_notice: releventNoticeUrls,
@@ -263,15 +389,20 @@ export default function CreateClientSection({
           contact_number: "",
           other_contact: "",
           next_of_kin: "",
-          apartment_id: "",
+          apartment_ids: "",
           discount: "0",
           amount_payable: "",
           agent_name: "",
           status: "Active",
           installment_plan: "Monthly Plan",
+          notes: "",
+          client_image: null,
+          documents: [],
+          relevent_notice: [],
         });
         setSelectedFloor("");
         setSelectedApartment("");
+        setSelectedApartments([]);
         setErrors({});
         setGeneralError(null);
 
@@ -384,8 +515,15 @@ export default function CreateClientSection({
             name="address"
             value={formData.address || ""}
             onChange={handleChange}
-            className="border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-[#98786d]"
+            className={
+              "border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-[#98786d]"
+            }
           />
+          {errors.address && (
+            <span className="text-red-500 text-sm mb-1">
+              ⚠ {errors.address}
+            </span>
+          )}
         </div>
 
         {/* 📚 Documents Upload (Multiple) */}
@@ -418,7 +556,115 @@ export default function CreateClientSection({
           />
         </div>
 
-        {/* Floor Dropdown */}
+        {/* 🏢 Apartment Selection Section */}
+        <div className="col-span-full bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <label className="block text-[#98786d] font-medium mb-2">
+            Apartment Selection
+          </label>
+
+          {/* Dropdowns Row */}
+          <div className="flex flex-col md:flex-row gap-3">
+            {/* Floor Dropdown */}
+            <div className="flex-1">
+              <select
+                value={selectedFloor}
+                onChange={(e) => setSelectedFloor(e.target.value)}
+                className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-[#98786d]"
+              >
+                <option value="">Select Floor</option>
+                {floorIds.map((floor) => (
+                  <option key={floor} value={floor}>
+                    {floor.charAt(0).toUpperCase() + floor.slice(1)} Floor
+                  </option>
+                ))}
+              </select>
+              {errors.floor_id && (
+                <span className="text-red-500 text-sm mt-1 block">
+                  ⚠ {errors.floor_id}
+                </span>
+              )}
+            </div>
+
+            {/* Apartment Dropdown */}
+            <div className="flex-1">
+              <select
+                value={selectedApartment}
+                onChange={(e) => setSelectedApartment(e.target.value)}
+                disabled={!selectedFloor}
+                className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-[#98786d] disabled:bg-gray-100 disabled:cursor-not-allowed"
+              >
+                <option value="">Select Apartment</option>
+                {apartments.map((apt) => (
+                  <option key={apt.id} value={apt.number}>
+                    {`${apt.number} • ${apt.type} • ${apt.area} sq.ft`}
+                  </option>
+                ))}
+              </select>
+              {errors.apartment_ids && (
+                <span className="text-red-500 text-sm mt-1 block">
+                  ⚠ {errors.apartment_ids}
+                </span>
+              )}
+            </div>
+
+            {/* Add Apartment Button */}
+            {/* <button
+              type="button"
+              onClick={() => {
+                if (!selectedApartment || !selectedFloor) return;
+                const apt = apartments.find(
+                  (a) => a.number === selectedApartment
+                );
+                if (apt) {
+                  setSelectedApartments((prev) => {
+                    if (prev.find((p) => p.id === apt.id)) return prev; // avoid duplicates
+                    return [...prev, apt];
+                  });
+                  setSelectedApartment("");
+                }
+              }}
+              className="bg-[#98786d] text-white px-4 py-2 rounded-md hover:bg-[#7d645b] transition disabled:bg-gray-300 disabled:cursor-not-allowed"
+              disabled={!selectedApartment}
+            >
+              Add
+            </button> */}
+          </div>
+
+          {/* Selected Apartments List */}
+          {selectedApartments.length > 0 && (
+            <div className="mt-4 bg-white p-3 rounded-md border border-gray-200">
+              <p className="text-sm font-medium text-[#98786d] mb-2">
+                Selected Apartments:
+              </p>
+              <ul className="space-y-1">
+                {selectedApartments.map((apt) => (
+                  <li
+                    key={apt.id}
+                    className="flex justify-between items-center text-sm text-gray-700 border-b last:border-none pb-1"
+                  >
+                    <span>
+                      <strong>{apt.number}</strong> • {apt.floor_id} •{" "}
+                      {apt.type} • {apt.area} sq.ft
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSelectedApartments((prev) =>
+                          prev.filter((a) => a.id !== apt.id)
+                        )
+                      }
+                      className="text-red-500 hover:text-red-700 text-xs ml-2"
+                    >
+                      ✕
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {/* Floor Dropdown
         <div className="flex flex-col">
           <label className="text-sm font-medium text-[#98786d] mb-1">
             Floor
@@ -442,8 +688,8 @@ export default function CreateClientSection({
           )}
         </div>
 
-        {/* Apartment Dropdown */}
-        <div className="flex flex-col">
+        // {/* Apartment Dropdown */}
+        {/* <div className="flex flex-col">
           <label className="text-sm font-medium text-[#98786d] mb-1">
             Apartment
           </label>
@@ -465,7 +711,7 @@ export default function CreateClientSection({
               ⚠ {errors.apartment_id}
             </span>
           )}
-        </div>
+        </div> */}
 
         {/* Installment Plan Dropdown */}
         <div className="flex flex-col">
@@ -510,6 +756,38 @@ export default function CreateClientSection({
           <label className="text-sm font-medium text-[#98786d] mb-1">
             Amount Payable
           </label>
+
+          {/* Show the breakdown in the input (read-only) */}
+          <input
+            type="text"
+            value={formData.amount_breakdown || ""}
+            readOnly
+            placeholder="0"
+            className="border border-gray-300 rounded-md p-2 bg-gray-100 text-gray-800"
+          />
+
+          {/* Show total below */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
+            <div className="text-sm text-gray-700 mt-1">
+              <span className="font-semibold">Total:</span>{" "}
+              {formData.amount_payable
+                ? new Intl.NumberFormat("en-PK", {
+                    style: "currency",
+                    currency: "PKR",
+                    maximumFractionDigits: 0,
+                  }).format(formData.amount_payable)
+                : "Rs. 0"}
+            </div>
+            <div className="text-xs text-gray-500 mt-1 italic">
+              <p>(after {formData.discount}% discount)</p>
+            </div>
+          </div>
+        </div>
+
+        {/* <div className="flex flex-col">
+          <label className="text-sm font-medium text-[#98786d] mb-1">
+            Amount Payable
+          </label>
           <input
             name="amount_payable"
             value={
@@ -525,20 +803,7 @@ export default function CreateClientSection({
             readOnly
             className="border border-gray-300 rounded-md p-2 bg-gray-100 cursor-not-allowed text-gray-700"
           />
-        </div>
-
-        {/* Allotment Date (display only) */}
-        <div>
-          <label className="text-sm font-medium text-[#98786d] mb-1 block">
-            Allotment Date
-          </label>
-          <input
-            type="text"
-            value={new Date().toLocaleDateString()}
-            readOnly
-            className="border rounded-md p-2 w-full bg-gray-100 text-gray-600"
-          />
-        </div>
+        </div> */}
 
         {/* Agent Name */}
         <div className="flex flex-col">
@@ -552,6 +817,11 @@ export default function CreateClientSection({
             onChange={handleChange}
             className="border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-[#98786d]"
           />
+          {errors.address && (
+            <span className="text-red-500 text-sm mb-1">
+              ⚠ {errors.address}
+            </span>
+          )}
         </div>
 
         {/* Status Dropdown */}
@@ -572,9 +842,30 @@ export default function CreateClientSection({
             <span className="text-red-500 text-sm mb-1">⚠ {errors.status}</span>
           )}
         </div>
+
+        {/* Notes */}
+        <div className="flex flex-col md:col-span-2">
+          <label className="text-sm font-medium text-[#98786d] mb-1">
+            Notes
+          </label>
+          <input
+            type="text"
+            name="notes"
+            value={formData.notes || ""}
+            onChange={handleChange}
+            className="border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-[#98786d]"
+          />
+        </div>
       </div>
 
       <div className="md:col-span-2 flex flex-col items-center space-y-2 mt-4">
+        {Object.keys(errors).length > 0 && (
+          <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded mb-3 text-center w-full max-w-md">
+            <p className="font-semibold">⚠ Please fix the errors above before submitting</p>
+            <p className="text-sm mt-1">Scroll up to review {Object.keys(errors).length} field error{Object.keys(errors).length > 1 ? 's' : ''}</p>
+          </div>
+        )}
+
         {generalError && (
           <p className="text-red-500 text-sm mb-2 text-center">
             ⚠ {generalError}
