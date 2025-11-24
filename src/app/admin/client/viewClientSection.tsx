@@ -158,8 +158,6 @@ export default function ViewClientSection({
           <FaMoneyBillWave /> Payment Information
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-          <Detail label="Installment Plan" value={client.installment_plan} />
-          <Detail label="Discount" value={`${client.discount}%`} />
           <Detail
             label="Amount Payable"
             value={`Rs. ${client.amount_payable}`}
@@ -223,20 +221,38 @@ function ApartmentList({ membershipNumber }: { membershipNumber: string }) {
   }
 
   return (
-    <ul className="space-y-2 bg-gray-50 p-3 rounded-md border border-gray-200">
+    <ul className="space-y-3 bg-gray-50 p-3 rounded-md border border-gray-200">
       {apartments.map((apt) => (
-        <li key={apt.id} className="flex justify-between text-sm text-gray-700">
-          <span>
-            <span className="font-medium text-[#98786d]">{apt.type}</span> —{" "}
-            {apt.floor_id.charAt(0).toUpperCase() + apt.floor_id.slice(1)} floor
-          </span>
-          <span className="text-gray-500">
-            Allotted: {new Date(apt.alloted_date).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "short",
-              day: "2-digit",
-            })}
-          </span>
+        <li key={apt.id} className="text-sm">
+          <div className="flex justify-between text-gray-700">
+            <span>
+              <span className="font-medium text-[#98786d]">{apt.type}</span> —{" "}
+              {apt.floor_id.charAt(0).toUpperCase() + apt.floor_id.slice(1)}{" "}
+              floor
+            </span>
+            <span className="text-gray-500 text-xs">
+              Allotted:{" "}
+              {new Date(apt.alloted_date).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "short",
+                day: "2-digit",
+              })}
+            </span>
+          </div>
+          <div className="text-xs text-gray-600 mt-1">
+            Base: PKR {(apt.price || 0).toLocaleString()}
+            {apt.discount > 0 && (
+              <>
+                {" • "}
+                <span className="text-green-600 font-medium">
+                  {apt.discount}% off
+                </span>
+                {" → "}
+                Discounted: PKR{" "}
+                {(apt.discounted_price || apt.price).toLocaleString()}
+              </>
+            )}
+          </div>
         </li>
       ))}
     </ul>
@@ -251,11 +267,15 @@ function PaymentInfo({ client }: { client: any }) {
   useEffect(() => {
     const loadPrices = async () => {
       // Fetch apartments from intermediate table using membership number
-      const { data: apartments } = await getClientApartments(client.membership_number);
+      const { data: apartments } = await getClientApartments(
+        client.membership_number
+      );
 
       if (apartments && apartments.length > 0) {
-        // Extract prices from apartments
-        const prices = apartments.map((apt: any) => apt.price || 0);
+        // Extract discounted prices from apartments
+        const prices = apartments.map(
+          (apt: any) => apt.discounted_price || apt.price || 0
+        );
         setApartmentPrices(prices);
       }
       setLoading(false);
@@ -265,14 +285,11 @@ function PaymentInfo({ client }: { client: any }) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-      <Detail label="Installment Plan" value={client.installment_plan} />
-      <Detail label="Discount" value={`${client.discount}%`} />
-
       {/* Amount Payable */}
-      <div>
-        <p className="text-[#98786d] font-medium">Amount Payable</p>
+      <div className="md:col-span-2">
+        <p className="text-[#98786d] font-medium mb-2">Amount Payable</p>
 
-        {/* 🧮 Price Breakdown */}
+        {/* 🧮 Price Breakdown - showing discounted prices */}
         <p className="text-gray-700 bg-gray-50 p-2 rounded-md border border-gray-200">
           {apartmentPrices.length > 0
             ? apartmentPrices
@@ -288,20 +305,15 @@ function PaymentInfo({ client }: { client: any }) {
         </p>
 
         {/* 💰 Total Below */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-1 mt-1">
-          <div className="text-sm text-gray-700">
-            <span className="font-semibold">Total:</span>{" "}
-            {client.amount_payable
-              ? new Intl.NumberFormat("en-PK", {
-                  style: "currency",
-                  currency: "PKR",
-                  maximumFractionDigits: 0,
-                }).format(client.amount_payable)
-              : "Rs. 0"}
-          </div>
-          <div className="text-xs text-gray-500 italic">
-            <p>(after {client.discount}% discount)</p>
-          </div>
+        <div className="text-sm text-gray-700 mt-2">
+          <span className="font-semibold">Total Payable:</span>{" "}
+          {client.amount_payable
+            ? new Intl.NumberFormat("en-PK", {
+                style: "currency",
+                currency: "PKR",
+                maximumFractionDigits: 0,
+              }).format(client.amount_payable)
+            : "Rs. 0"}
         </div>
       </div>
 

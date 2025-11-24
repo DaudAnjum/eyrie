@@ -9,16 +9,15 @@ export async function POST(req: Request) {
   try {
     const { username, password } = await req.json();
 
+    if (!username || !password) {
+      return NextResponse.json({ error: "Missing credentials" }, { status: 400 });
+    }
+
     const { data: admin, error } = await supabase
       .from("admins")
       .select("*")
       .eq("username", username)
       .single();
-
-
-    if (!username || !password) {
-      return NextResponse.json({ error: "Missing credentials" }, { status: 400 });
-    }
 
 
     if (error || !admin) {

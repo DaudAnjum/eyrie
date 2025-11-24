@@ -31,8 +31,6 @@ export default function CreateClientSection({
     other_contact: "",
     next_of_kin: "",
     apartment_ids: "",
-    installment_plan: "Monthly Plan",
-    discount: "0",
     amount_payable: "",
     agent_name: "",
     status: "Active",
@@ -46,7 +44,7 @@ export default function CreateClientSection({
   const [apartments, setApartments] = useState<any[]>([]);
   const [selectedFloor, setSelectedFloor] = useState("");
   const [selectedApartment, setSelectedApartment] = useState("");
-  const [selectedApartments, setSelectedApartments] = useState<any[]>([]); // 🆕 store multiple apartments
+  const [selectedApartments, setSelectedApartments] = useState<any[]>([]); // 🆕 store multiple apartments with discount percentage
   const [basePrice, setBasePrice] = useState<number | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
@@ -114,7 +112,7 @@ export default function CreateClientSection({
     fetchApartments();
   }, [selectedFloor]);
 
-  // 🏢 Add selected apartment (multiple support)
+  // 🏢 Add selected apartment (multiple support) - now with discount
   useEffect(() => {
     if (!selectedApartment) return;
 
@@ -123,7 +121,8 @@ export default function CreateClientSection({
       setSelectedApartments((prev) => {
         // prevent duplicates
         if (prev.find((apt) => apt.id === selectedApt.id)) return prev;
-        return [...prev, selectedApt];
+        // Add apartment with default 0% discount
+        return [...prev, { ...selectedApt, discount: 0 }];
       });
       setSelectedApartment(""); // reset dropdown for next selection
     }
@@ -224,35 +223,37 @@ export default function CreateClientSection({
   //   }
   // }, [basePrice, formData.discount]);
 
-  // 🧮 Calculate and display amount payable (for multiple apartments)
+  // 🧮 Calculate and display amount payable (for multiple apartments) - using per-apartment discount
   useEffect(() => {
-    const discountValue =
-      formData.discount && !isNaN(Number(formData.discount))
-        ? Number(formData.discount)
-        : 0;
+    // Calculate discounted price for each apartment
+    const apartmentsWithDiscountedPrices = selectedApartments.map((apt) => {
+      const basePrice = Number(apt.price) || 0;
+      const discountPercent = Number(apt.discount) || 0;
+      const discountedPrice = basePrice - (basePrice * discountPercent / 100);
+      return {
+        ...apt,
+        discounted_price: Math.round(discountedPrice)
+      };
+    });
 
-    // 🟢 Gather all selected apartments' prices
-    const totalBasePrice = selectedApartments.reduce(
-      (sum, apt) => sum + (Number(apt.price) || 0),
+    // Sum all discounted prices
+    const totalDiscountedPrice = apartmentsWithDiscountedPrices.reduce(
+      (sum, apt) => sum + apt.discounted_price,
       0
     );
 
-    // 🟢 Prepare a readable breakdown (e.g., "500000 + 650000")
-    const breakdown = selectedApartments
-      .map((apt) => (apt.price ? Number(apt.price).toLocaleString() : "0"))
+    // 🟢 Prepare a readable breakdown showing discounted prices
+    const breakdown = apartmentsWithDiscountedPrices
+      .map((apt) => apt.discounted_price.toLocaleString())
       .join(" + ");
-
-    // 🧮 Apply discount to total
-    const discountedTotal =
-      totalBasePrice - (totalBasePrice * discountValue) / 100;
 
     // 🟢 Store total numeric value in formData.amount_payable
     setFormData((prev: any) => ({
       ...prev,
-      amount_payable: Math.round(discountedTotal),
-      amount_breakdown: breakdown, // 🆕 store visual breakdown (not saved to DB)
+      amount_payable: totalDiscountedPrice,
+      amount_breakdown: breakdown,
     }));
-  }, [selectedApartments, formData.discount]);
+  }, [selectedApartments]);
 
   // 🧮 Generate membership number
   useEffect(() => {
@@ -306,9 +307,7 @@ export default function CreateClientSection({
       "contact_number",
       "next_of_kin",
       "agent_name",
-      "discount",
       "status",
-      "installment_plan",
     ];
 
     requiredFields.forEach((field) => {
@@ -367,6 +366,7 @@ export default function CreateClientSection({
         apartments: selectedApartments.map((apt) => ({
           floor_id: apt.floor_id,
           apartment_number: apt.number,
+          discount: apt.discount || 0, // 🆕 include per-apartment discount
         })), // 🆕 multiple apartments support
         // floor_id: selectedFloor,
         // apartment_number: selectedApartment,
@@ -390,11 +390,9 @@ export default function CreateClientSection({
           other_contact: "",
           next_of_kin: "",
           apartment_ids: "",
-          discount: "0",
           amount_payable: "",
           agent_name: "",
           status: "Active",
-          installment_plan: "Monthly Plan",
           notes: "",
           client_image: null,
           documents: [],
@@ -636,27 +634,59 @@ export default function CreateClientSection({
               <p className="text-sm font-medium text-[#98786d] mb-2">
                 Selected Apartments:
               </p>
-              <ul className="space-y-1">
-                {selectedApartments.map((apt) => (
+              <ul className="space-y-3">
+                {selectedApartments.map((apt, index) => (
                   <li
                     key={apt.id}
-                    className="flex justify-between items-center text-sm text-gray-700 border-b last:border-none pb-1"
+                    className="flex items-center gap-3 text-sm text-gray-700 border-b last:border-none pb-3"
                   >
-                    <span>
-                      <strong>{apt.number}</strong> • {apt.floor_id} •{" "}
-                      {apt.type} • {apt.area} sq.ft
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSelectedApartments((prev) =>
-                          prev.filter((a) => a.id !== apt.id)
-                        )
-                      }
-                      className="text-red-500 hover:text-red-700 text-xs ml-2"
-                    >
-                      ✕
-                    </button>
+                    <div className="flex-1">
+                      <div>
+                        <strong>{apt.number}</strong> • {apt.floor_id} • {apt.type} • {apt.area} sq.ft
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        Base: PKR {(apt.price || 0).toLocaleString()}
+                        {apt.discount > 0 && (
+                          <> → Discounted: PKR {(apt.price - (apt.price * apt.discount / 100)).toLocaleString()}</>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex flex-col items-end">
+                        <label className="text-[10px] text-gray-500 mb-0.5">Discount</label>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                            value={apt.discount || 0}
+                            onChange={(e) => {
+                              const newDiscount = Math.min(100, Math.max(0, Number(e.target.value) || 0));
+                              setSelectedApartments((prev) =>
+                                prev.map((a, i) =>
+                                  i === index ? { ...a, discount: newDiscount } : a
+                                )
+                              );
+                            }}
+                            placeholder="0"
+                            className="w-16 px-2 py-1 border border-gray-300 rounded text-xs"
+                          />
+                          <span className="text-xs text-gray-500">%</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedApartments((prev) =>
+                            prev.filter((a) => a.id !== apt.id)
+                          )
+                        }
+                        className="text-red-500 hover:text-red-700 text-xs"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -713,46 +743,8 @@ export default function CreateClientSection({
           )}
         </div> */}
 
-        {/* Installment Plan Dropdown */}
-        <div className="flex flex-col">
-          <label className="text-sm font-medium text-[#98786d] mb-1">
-            Installment Plan
-          </label>
-          <select
-            name="installment_plan"
-            value={formData.installment_plan || ""}
-            onChange={handleChange}
-            className="border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-[#98786d]"
-          >
-            <option value="Monthly Plan">Monthly Plan</option>
-            <option value="Half-Yearly Plan">Half-Yearly Plan</option>
-            <option value="Yearly Plan">Yearly Plan</option>
-          </select>
-          {errors.installment_plan && (
-            <span className="text-red-500 text-sm mb-1">
-              ⚠ {errors.installment_plan}
-            </span>
-          )}
-        </div>
-
-        {/* Discount */}
-        <div className="flex flex-col">
-          <label className="text-sm font-medium text-[#98786d] mb-1">
-            Discount (%)
-          </label>
-          <input
-            type="number"
-            name="discount"
-            value={formData.discount || "0"}
-            onChange={handleChange}
-            min="0"
-            max="100"
-            className="border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-[#98786d]"
-          />
-        </div>
-
         {/* Amount Payable */}
-        <div className="flex flex-col">
+        <div className="flex flex-col col-span-2">
           <label className="text-sm font-medium text-[#98786d] mb-1">
             Amount Payable
           </label>
@@ -767,20 +759,15 @@ export default function CreateClientSection({
           />
 
           {/* Show total below */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
-            <div className="text-sm text-gray-700 mt-1">
-              <span className="font-semibold">Total:</span>{" "}
-              {formData.amount_payable
-                ? new Intl.NumberFormat("en-PK", {
-                    style: "currency",
-                    currency: "PKR",
-                    maximumFractionDigits: 0,
-                  }).format(formData.amount_payable)
-                : "Rs. 0"}
-            </div>
-            <div className="text-xs text-gray-500 mt-1 italic">
-              <p>(after {formData.discount}% discount)</p>
-            </div>
+          <div className="text-sm text-gray-700 mt-1">
+            <span className="font-semibold">Total:</span>{" "}
+            {formData.amount_payable
+              ? new Intl.NumberFormat("en-PK", {
+                  style: "currency",
+                  currency: "PKR",
+                  maximumFractionDigits: 0,
+                }).format(formData.amount_payable)
+              : "Rs. 0"}
           </div>
         </div>
 

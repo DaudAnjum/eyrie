@@ -29,8 +29,6 @@ export default function EditClientSection({
     next_of_kin: "",
     apartment_ids: [] as string[],
     apartment_number: "",
-    installment_plan: "Monthly Plan",
-    discount: "0",
     amount_payable: "",
     agent_name: "",
     status: "Active",
@@ -58,6 +56,7 @@ export default function EditClientSection({
   // 🆕 Track original apartments and current selection
   const [originalApartments, setOriginalApartments] = useState<any[]>([]);
   const [currentApartmentIds, setCurrentApartmentIds] = useState<string[]>([]);
+  const [apartmentDetailsCache, setApartmentDetailsCache] = useState<any[]>([]);
 
   // Populate formData when client prop changes
   useEffect(() => {
@@ -74,8 +73,6 @@ export default function EditClientSection({
       contact_number: client.contact_number ?? "",
       other_contact: client.other_contact ?? "",
       next_of_kin: client.next_of_kin ?? "",
-      installment_plan: client.installment_plan ?? "Monthly Plan",
-      discount: client.discount ?? "0",
       amount_payable:
         client.amount_payable !== undefined && client.amount_payable !== null
           ? client.amount_payable
@@ -91,19 +88,34 @@ export default function EditClientSection({
     // 🆕 Fetch client apartments from intermediate table
     (async () => {
       try {
-        const { data: apartmentsData } = await getClientApartments(client.membership_number);
+        const { data: apartmentsData } = await getClientApartments(
+          client.membership_number
+        );
 
         if (apartmentsData && apartmentsData.length > 0) {
           setOriginalApartments(apartmentsData);
           setCurrentApartmentIds(apartmentsData.map((apt: any) => apt.id));
+          // 🆕 Populate apartmentDetailsCache with fetched data
+          setApartmentDetailsCache(apartmentsData.map((apt: any) => ({
+            id: apt.id,
+            number: apt.number,
+            type: apt.type,
+            floor_id: apt.floor_id,
+            price: apt.price,
+            discount: apt.discount || 0,
+            discounted_price: apt.discounted_price || apt.price,
+            alloted_date: apt.alloted_date,
+          })));
         } else {
           setOriginalApartments([]);
           setCurrentApartmentIds([]);
+          setApartmentDetailsCache([]);
         }
       } catch (err) {
         console.error("Error fetching client apartments:", err);
         setOriginalApartments([]);
         setCurrentApartmentIds([]);
+        setApartmentDetailsCache([]);
       }
     })();
 
@@ -214,35 +226,23 @@ export default function EditClientSection({
       }
 
       try {
-        // 🏢 Fetch prices of all apartments for this client
-        const { data, error } = await supabase
-          .from("apartments")
-          .select("id, price")
-          .in("id", currentApartmentIds);
+        // 🏢 Sum up discounted prices from apartmentDetailsCache
+        const totalDiscounted = apartmentDetailsCache
+          .filter((apt) => currentApartmentIds.includes(apt.id))
+          .reduce((sum, apt) => sum + (apt.discounted_price || apt.price || 0), 0);
 
-        if (error) throw error;
-
-        // 🧮 Step 1: Calculate total before discount
-        const totalBase = data.reduce((sum, apt) => sum + (apt.price || 0), 0);
-
-        // 🧮 Step 2: Apply discount to total
-        const discountValue =
-          formData.discount && !isNaN(Number(formData.discount))
-            ? Number(formData.discount)
-            : 0;
-        const discountedTotal = totalBase - (totalBase * discountValue) / 100;
-
-        // 🧩 Step 3: Build display string (newest apartment first)
-        const reversed = [...data].reverse();
-        const amountDisplay = reversed
-          .map((apt) => `${apt.price?.toLocaleString("en-PK") || "0"}`)
+        // 🧩 Build display string using discounted prices
+        const amountDisplay = apartmentDetailsCache
+          .filter((apt) => currentApartmentIds.includes(apt.id))
+          .map((apt) => `${(apt.discounted_price || apt.price || 0).toLocaleString("en-PK")}`)
+          .reverse()
           .join(" + ");
 
-        // 🧩 Step 4: Update form state
+        // 🧩 Update form state
         setFormData((prev: any) => ({
           ...prev,
           amount_payable_display: amountDisplay,
-          amount_payable: Math.round(discountedTotal),
+          amount_payable: totalDiscounted,
         }));
       } catch (err) {
         console.error("❌ Error updating amount payable:", err);
@@ -250,7 +250,7 @@ export default function EditClientSection({
     };
 
     updateAmounts();
-  }, [currentApartmentIds, formData.discount]);
+  }, [currentApartmentIds, JSON.stringify(apartmentDetailsCache)]);
 
   // useEffect(() => {
   //   const discountValue =
@@ -284,18 +284,6 @@ export default function EditClientSection({
     // Skip if the input is a file input (those go to handleFileChange)
     if (e.target.type === "file") return;
 
-    // discount: sanitize + clamp 0..100
-    if (name === "discount") {
-      const numericValue = String(value).replace(/[^\d.]/g, "");
-      let num = parseFloat(numericValue);
-      if (isNaN(num)) num = 0;
-      if (num < 0) num = 0;
-      if (num > 100) num = 100;
-      setFormData((prev: any) => ({ ...prev, discount: String(num) }));
-      setErrors((prev) => ({ ...prev, discount: "" }));
-      return;
-    }
-
     setFormData((prev: any) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: "" }));
   };
@@ -311,7 +299,6 @@ export default function EditClientSection({
       "email",
       "contact_number",
       "next_of_kin",
-      "installment_plan",
       "agent_name",
       "status",
     ];
@@ -426,11 +413,19 @@ export default function EditClientSection({
       const originalIds = originalApartments.map((apt) => apt.id);
       const currentIds = currentApartmentIds;
 
-      const apartmentsToAdd = currentIds.filter((id) => !originalIds.includes(id));
-      const apartmentsToRemove = originalIds.filter((id) => !currentIds.includes(id));
+      const apartmentsToAdd = currentIds.filter(
+        (id) => !originalIds.includes(id)
+      );
+      const apartmentsToRemove = originalIds.filter(
+        (id) => !currentIds.includes(id)
+      );
 
-      // Resolve apartmentsToAdd to {floor_id, apartment_number} format
-      const apartmentsToAddResolved: Array<{ floor_id: string; apartment_number: string }> = [];
+      // Resolve apartmentsToAdd to {floor_id, apartment_number, discount} format
+      const apartmentsToAddResolved: Array<{
+        floor_id: string;
+        apartment_number: string;
+        discount: number;
+      }> = [];
 
       for (const aptId of apartmentsToAdd) {
         const { data: apt, error } = await supabase
@@ -440,10 +435,43 @@ export default function EditClientSection({
           .single();
 
         if (apt && !error && apt.floor_id && apt.number) {
+          // Get discount from apartmentDetailsCache
+          const aptDiscount = apartmentDetailsCache.find((a) => a.id === aptId)?.discount || 0;
+
           apartmentsToAddResolved.push({
             floor_id: apt.floor_id,
             apartment_number: apt.number,
+            discount: aptDiscount,
           });
+        }
+      }
+
+      // 🆕 Detect apartments with changed discounts
+      const apartmentsToUpdate: Array<{
+        apartment_id: string;
+        discount: number;
+        price: number;
+      }> = [];
+
+      for (const aptId of currentIds) {
+        const isOriginal = originalIds.includes(aptId);
+        if (!isOriginal) continue; // Skip new apartments
+
+        const originalApt = originalApartments.find((a) => a.id === aptId);
+        const currentApt = apartmentDetailsCache.find((a) => a.id === aptId);
+
+        if (originalApt && currentApt) {
+          const originalDiscount = originalApt.discount || 0;
+          const currentDiscount = currentApt.discount || 0;
+
+          // Check if discount has changed
+          if (Math.abs(originalDiscount - currentDiscount) > 0.001) {
+            apartmentsToUpdate.push({
+              apartment_id: aptId,
+              discount: currentDiscount,
+              price: currentApt.price,
+            });
+          }
         }
       }
 
@@ -510,7 +538,8 @@ export default function EditClientSection({
       }
 
       // 🧩 4️⃣ Prepare final data to send
-      const { amount_payable_display, apartment_ids, ...restFormData } = formData;
+      const { amount_payable_display, apartment_ids, ...restFormData } =
+        formData;
 
       const updatedData: any = {
         ...restFormData,
@@ -527,17 +556,15 @@ export default function EditClientSection({
       console.log("Apartment changes:", {
         apartmentsToAdd: apartmentsToAddResolved,
         apartmentIdsToRemove: apartmentsToRemove,
+        apartmentsToUpdate: apartmentsToUpdate,
       });
 
       // 🆕 Call updateClient with apartment changes
-      const result = await updateClient(
-        client.membership_number,
-        clean,
-        {
-          apartmentsToAdd: apartmentsToAddResolved,
-          apartmentIdsToRemove: apartmentsToRemove,
-        }
-      );
+      const result = await updateClient(client.membership_number, clean, {
+        apartmentsToAdd: apartmentsToAddResolved,
+        apartmentIdsToRemove: apartmentsToRemove,
+        apartmentsToUpdate: apartmentsToUpdate,
+      });
 
       if (result.success) {
         // pick the returned row if available
@@ -1079,6 +1106,17 @@ export default function EditClientSection({
                 );
                 if (apt && !currentApartmentIds.includes(apt.id)) {
                   setCurrentApartmentIds((prev) => [...prev, apt.id]);
+                  // 🆕 Add to apartmentDetailsCache with default discount 0
+                  setApartmentDetailsCache((prev) => [...prev, {
+                    id: apt.id,
+                    number: apt.number,
+                    type: apt.type,
+                    floor_id: apt.floor_id,
+                    price: apt.price,
+                    discount: 0,
+                    discounted_price: apt.price,
+                    area: apt.area,
+                  }]);
                   setSelectedApartment(""); // Reset selection
                 }
               }}
@@ -1091,47 +1129,97 @@ export default function EditClientSection({
           {/* Selected Apartments List */}
           {currentApartmentIds.length > 0 ? (
             <div className="space-y-2">
-              {currentApartmentIds.map((aptId: string) => {
-                // Find apartment details
-                const aptDetails = originalApartments.find((a) => a.id === aptId) ||
-                                  allApartments.find((a) => a.id === aptId);
+              {currentApartmentIds.map((aptId: string, index: number) => {
+                // Find apartment details from cache
+                const aptDetails = apartmentDetailsCache.find((a) => a.id === aptId);
+                const isOriginal = originalApartments.find((a) => a.id === aptId);
 
                 return (
                   <div
                     key={aptId}
-                    className="bg-white border rounded-md px-3 py-2 text-sm flex items-center justify-between"
+                    className="bg-white border rounded-md px-3 py-2 text-sm flex items-center gap-3"
                   >
-                    <span className="text-gray-700">
-                      {aptDetails ? (
-                        <>
-                          <span className="font-medium text-[#98786d]">
-                            {aptDetails.number || aptDetails.type}
-                          </span>
-                          {" • "}
-                          {aptDetails.floor_id && (
-                            <>
-                              {aptDetails.floor_id.charAt(0).toUpperCase() +
-                                aptDetails.floor_id.slice(1)}{" "}
-                              Floor
-                            </>
-                          )}
-                          {aptDetails.alloted_date && (
-                            <span className="text-xs text-gray-500 ml-2">
-                              (Allotted: {new Date(aptDetails.alloted_date).toLocaleDateString()})
+                    <div className="flex-1">
+                      <div className="text-gray-700">
+                        {aptDetails ? (
+                          <>
+                            <span className="font-medium text-[#98786d]">
+                              {aptDetails.number || aptDetails.type}
                             </span>
+                            {" • "}
+                            {aptDetails.floor_id && (
+                              <>
+                                {aptDetails.floor_id.charAt(0).toUpperCase() +
+                                  aptDetails.floor_id.slice(1)}{" "}
+                                Floor
+                              </>
+                            )}
+                            {aptDetails.alloted_date && (
+                              <span className="text-xs text-gray-500 ml-2">
+                                (Allotted:{" "}
+                                {new Date(
+                                  aptDetails.alloted_date
+                                ).toLocaleDateString()}
+                                )
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          aptId
+                        )}
+                      </div>
+                      {aptDetails && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          Base: PKR {(aptDetails.price || 0).toLocaleString()}
+                          {(aptDetails.discount > 0 || aptDetails.discounted_price) && (
+                            <> → Discounted: PKR {(aptDetails.discounted_price || aptDetails.price).toLocaleString()}</>
                           )}
-                        </>
-                      ) : (
-                        aptId
+                        </div>
                       )}
-                    </span>
+                    </div>
+
+                    {/* Discount input - editable for all apartments */}
+                    {aptDetails && (
+                      <div className="flex flex-col items-end">
+                        <label className="text-[10px] text-gray-500 mb-0.5">Discount</label>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                            value={aptDetails.discount || 0}
+                            onChange={(e) => {
+                              const newDiscount = Math.min(100, Math.max(0, Number(e.target.value) || 0));
+                              setApartmentDetailsCache((prev) =>
+                                prev.map((a) =>
+                                  a.id === aptId ? {
+                                    ...a,
+                                    discount: newDiscount,
+                                    discounted_price: Math.round(a.price - (a.price * newDiscount / 100))
+                                  } : a
+                                )
+                              );
+                            }}
+                            placeholder="0"
+                            className="w-16 px-2 py-1 border border-gray-300 rounded text-xs"
+                          />
+                          <span className="text-xs text-gray-500">%</span>
+                        </div>
+                      </div>
+                    )}
+
                     <button
                       type="button"
-                      onClick={() =>
+                      onClick={() => {
                         setCurrentApartmentIds((prev) =>
                           prev.filter((id) => id !== aptId)
-                        )
-                      }
+                        );
+                        // 🆕 Also remove from apartmentDetailsCache
+                        setApartmentDetailsCache((prev) =>
+                          prev.filter((a) => a.id !== aptId)
+                        );
+                      }}
                       className="text-red-500 hover:text-red-700"
                     >
                       ✕
@@ -1145,106 +1233,8 @@ export default function EditClientSection({
           )}
         </div>
 
-        {/* Floor dropdown
-        <div>
-          <label className="text-sm font-medium text-[#98786d] mb-1 block">
-            Floor
-          </label>
-          <select
-            value={selectedFloor}
-            onChange={(e) => setSelectedFloor(e.target.value)}
-            className={`border rounded-md p-2 w-full ${
-              errors.floor_id ? "border-red-400" : "border-gray-300"
-            }`}
-          >
-            <option value="">Select Floor</option>
-            {floorIds.map((floor) => (
-              <option key={floor} value={floor}>
-                {floor.charAt(0).toUpperCase() + floor.slice(1)} Floor
-              </option>
-            ))}
-          </select>
-          {errors.floor_id && (
-            <p className="text-red-600 text-xs mt-1">{errors.floor_id}</p>
-          )}
-        </div>
-
-        // {/* Apartment dropdown */}
-        {/* <div>
-          <label className="text-sm font-medium text-[#98786d] mb-1 block">
-            Apartment
-          </label>
-          <select
-            value={selectedApartment}
-            onChange={(e) => setSelectedApartment(e.target.value)}
-            disabled={!selectedFloor}
-            className={`border rounded-md p-2 w-full ${
-              !selectedFloor ? "bg-gray-100 cursor-not-allowed" : ""
-            } ${
-              errors.apartment_number ? "border-red-400" : "border-gray-300"
-            }`}
-          >
-            <option value="">Select Apartment</option>
-            {apartments.map((apt) => (
-              <option key={apt.id} value={apt.number}>
-                {`${apt.number} • ${apt.type} • ${apt.area} sq.ft`}
-              </option>
-            ))}
-          </select>
-          {errors.apartment_number && (
-            <p className="text-red-600 text-xs mt-1">
-              {errors.apartment_number}
-            </p>
-          )}
-        </div> */}
-
-        {/* Installment plan */}
-        <div>
-          <label className="text-sm font-medium text-[#98786d] mb-1 block">
-            Installment Plan
-          </label>
-          <select
-            name="installment_plan"
-            value={formData.installment_plan ?? "Monthly Plan"}
-            onChange={handleChange}
-            className={`border rounded-md p-2 w-full ${
-              errors.installment_plan ? "border-red-400" : "border-gray-300"
-            }`}
-          >
-            <option value="Monthly Plan">Monthly Plan</option>
-            <option value="Half-Yearly Plan">Half-Yearly Plan</option>
-            <option value="Yearly Plan">Yearly Plan</option>
-          </select>
-          {errors.installment_plan && (
-            <p className="text-red-600 text-xs mt-1">
-              {errors.installment_plan}
-            </p>
-          )}
-        </div>
-
-        {/* Discount */}
-        <div>
-          <label className="text-sm font-medium text-[#98786d] mb-1 block">
-            Discount (%)
-          </label>
-          <input
-            name="discount"
-            type="number"
-            min={0}
-            max={100}
-            value={formData.discount ?? "0"}
-            onChange={handleChange}
-            className={`border rounded-md p-2 w-full ${
-              errors.discount ? "border-red-400" : "border-gray-300"
-            }`}
-          />
-          {errors.discount && (
-            <p className="text-red-600 text-xs mt-1">{errors.discount}</p>
-          )}
-        </div>
-
         {/* Amount Payable */}
-        <div className="flex flex-col">
+        <div className="flex flex-col col-span-2">
           <label className="text-sm font-medium text-[#98786d] mb-1">
             Amount Payable
           </label>
@@ -1256,21 +1246,16 @@ export default function EditClientSection({
             className="border border-gray-300 rounded-md p-2 bg-gray-100 text-gray-700 cursor-not-allowed"
           />
 
-          {/* Show total after discount */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
-            <div className="text-sm text-gray-700 mt-1">
-              <span className="font-semibold">Total:</span>{" "}
-              {formData.amount_payable
-                ? new Intl.NumberFormat("en-PK", {
-                    style: "currency",
-                    currency: "PKR",
-                    maximumFractionDigits: 0,
-                  }).format(formData.amount_payable)
-                : "Rs. 0"}
-            </div>
-            <div className="text-xs text-gray-500 mt-1 italic">
-              <p>(after {formData.discount}% discount)</p>
-            </div>
+          {/* Show total */}
+          <div className="text-sm text-gray-700 mt-1">
+            <span className="font-semibold">Total:</span>{" "}
+            {formData.amount_payable
+              ? new Intl.NumberFormat("en-PK", {
+                  style: "currency",
+                  currency: "PKR",
+                  maximumFractionDigits: 0,
+                }).format(formData.amount_payable)
+              : "Rs. 0"}
           </div>
         </div>
 
@@ -1335,8 +1320,13 @@ export default function EditClientSection({
         <div className="md:col-span-2 flex flex-col items-center space-y-2 mt-4">
           {hasAttemptedSubmit && Object.keys(errors).length > 0 && (
             <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded mb-3 text-center w-full max-w-md">
-              <p className="font-semibold">⚠ Please fix the errors above before submitting</p>
-              <p className="text-sm mt-1">Scroll up to review {Object.keys(errors).length} field error{Object.keys(errors).length > 1 ? 's' : ''}</p>
+              <p className="font-semibold">
+                ⚠ Please fix the errors above before submitting
+              </p>
+              <p className="text-sm mt-1">
+                Scroll up to review {Object.keys(errors).length} field error
+                {Object.keys(errors).length > 1 ? "s" : ""}
+              </p>
             </div>
           )}
 

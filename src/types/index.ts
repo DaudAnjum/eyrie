@@ -28,7 +28,6 @@ export interface Client {
   next_of_kin: string;
   discount: number;
   amount_payable: number;
-  installment_plan: string;
   agent_name: string;
   status: string;
   created_at?: string;
@@ -122,4 +121,17 @@ export interface Admin {
   username: string;
   password_hash: string;
   created_at: string;
+}
+
+export interface Payment {
+  id: number;
+  client_membership: string;
+  apartment_id: string;
+  payment_category: 'booking' | 'allotment' | 'monthly' | 'half_yearly' | 'possession';
+  installment_number: number;
+  amount: number;
+  payment_method: 'Cash' | 'Bank Transfer' | 'Cheque' | 'Pay-order';
+  paid_date: string;
+  due_date?: string | null;
+  notes?: string;
 }

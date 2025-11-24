@@ -13,10 +13,10 @@ import { Database } from "@/lib/database.types";
 export const createClient = async (clientData: any) => {
   try {
     // 🧠 Step 1: Support multiple apartments (convert to array)
-    // clientData.apartments will likely be an array of { floor_id, apartment_number }
-    // We'll resolve each one to its apartment.id from Supabase
+    // clientData.apartments will be an array of { floor_id, apartment_number, discount }
+    // We'll resolve each one to its apartment.id from Supabase and calculate discounted_price
 
-    const apartmentIds: string[] = [];
+    const apartmentDetails: Array<{ id: string; price: number; discount_percentage: number; discounted_price: number }> = [];
 
     if (
       Array.isArray(clientData.apartments) &&
@@ -25,13 +25,22 @@ export const createClient = async (clientData: any) => {
       for (const apt of clientData.apartments) {
         const { data: apartment, error: aptError } = await supabase
           .from("apartments")
-          .select("id")
+          .select("id, price")
           .eq("floor_id", apt.floor_id)
           .eq("number", apt.apartment_number)
           .single();
 
         if (apartment && !aptError) {
-          apartmentIds.push(apartment.id);
+          const basePrice = apartment.price || 0;
+          const discountPercentage = Number(apt.discount) || 0;
+          const discountedPrice = basePrice - (basePrice * discountPercentage / 100);
+
+          apartmentDetails.push({
+            id: apartment.id,
+            price: basePrice,
+            discount_percentage: discountPercentage,
+            discounted_price: Math.round(discountedPrice),
+          });
         } else {
           console.warn(
             `⚠️ Apartment not found for floor ${apt.floor_id}, number ${apt.apartment_number}`
@@ -42,17 +51,26 @@ export const createClient = async (clientData: any) => {
       // Fallback (old single-apartment form)
       const { data: apartment, error: aptError } = await supabase
         .from("apartments")
-        .select("id")
+        .select("id, price")
         .eq("floor_id", clientData.floor_id)
         .eq("number", clientData.apartment_number)
         .single();
 
       if (apartment && !aptError) {
-        apartmentIds.push(apartment.id);
+        const basePrice = apartment.price || 0;
+        const discountPercentage = 0;
+        const discountedPrice = basePrice;
+
+        apartmentDetails.push({
+          id: apartment.id,
+          price: basePrice,
+          discount_percentage: discountPercentage,
+          discounted_price: Math.round(discountedPrice),
+        });
       }
     }
 
-    if (apartmentIds.length === 0) {
+    if (apartmentDetails.length === 0) {
       console.error("❌ No valid apartments found for client.");
       return { success: false, error: "No valid apartments found." };
     }
@@ -71,9 +89,7 @@ export const createClient = async (clientData: any) => {
           contact_number: clientData.contact_number,
           other_contact: clientData.other_contact,
           next_of_kin: clientData.next_of_kin,
-          discount: clientData.discount,
           amount_payable: clientData.amount_payable,
-          installment_plan: clientData.installment_plan,
           agent_name: clientData.agent_name,
           status: clientData.status,
           client_image: clientData.client_image || null,
@@ -88,12 +104,14 @@ export const createClient = async (clientData: any) => {
 
     if (error) throw error;
 
-    // 🆕 Step 3: Insert into intermediate table with today's date
+    // 🆕 Step 3: Insert into intermediate table with today's date, discount_percentage, and discounted_price
     const today = new Date().toISOString();
-    const intermediateRecords = apartmentIds.map((aptId) => ({
+    const intermediateRecords = apartmentDetails.map((apt) => ({
       client_membership: clientData.membership_number,
-      apartment_id: aptId,
+      apartment_id: apt.id,
       alloted_date: today,
+      discount_percentage: apt.discount_percentage,
+      discounted_price: apt.discounted_price,
     }));
 
     const { error: intermediateError } = await supabase
@@ -106,6 +124,7 @@ export const createClient = async (clientData: any) => {
     }
 
     // 🆕 Step 4: Update apartment status to 'sold'
+    const apartmentIds = apartmentDetails.map((apt) => apt.id);
     const { error: statusError } = await supabase
       .from("apartments")
       .update({ status: "sold" })
@@ -155,8 +174,7 @@ export const createClient = async (clientData: any) => {
 //           apartment_id: apartment.id,
 //           discount: clientData.discount,
 //           amount_payable: clientData.amount_payable,
-//           installment_plan: clientData.installment_plan,
-//           agent_name: clientData.agent_name,
+// //           agent_name: clientData.agent_name,
 //           status: clientData.status,
 //           client_image: clientData.client_image || null,
 //           documents: clientData.documents || [],
@@ -194,6 +212,8 @@ export const getClientApartments = async (
         id,
         apartment_id,
         alloted_date,
+        discount_percentage,
+        discounted_price,
         apartments (
           id,
           number,
@@ -217,6 +237,8 @@ export const getClientApartments = async (
       type: record.apartments.type,
       floor_id: record.apartments.floor_id,
       price: record.apartments.price,
+      discount: (record as any).discount_percentage || 0, // discount percentage per apartment
+      discounted_price: (record as any).discounted_price || record.apartments.price, // fallback to base price for old records
       area: record.apartments.area,
       bedrooms: record.apartments.bedrooms,
       bathrooms: record.apartments.bathrooms,
@@ -285,8 +307,9 @@ export const updateClient = async (
   membership_number: string,
   updatedData: Database['public']['Tables']['clients']['Update'],
   apartmentChanges?: {
-    apartmentsToAdd?: Array<{ floor_id: string; apartment_number: string }>;
+    apartmentsToAdd?: Array<{ floor_id: string; apartment_number: string; discount?: number }>;
     apartmentIdsToRemove?: string[]; // apartment.id values to remove
+    apartmentsToUpdate?: Array<{ apartment_id: string; discount: number; price: number }>; // Update discount for existing apartments
   }
 ) => {
   try {
@@ -304,20 +327,28 @@ export const updateClient = async (
 
     // Step 2: Handle apartment additions
     if (apartmentChanges?.apartmentsToAdd && apartmentChanges.apartmentsToAdd.length > 0) {
-      const newApartmentIds: string[] = [];
+      const newApartmentDetails: Array<{ id: string; discount_percentage: number; discounted_price: number }> = [];
       const today = new Date().toISOString();
 
-      // Resolve new apartments
+      // Resolve new apartments and calculate discounted prices using per-apartment discount
       for (const apt of apartmentChanges.apartmentsToAdd) {
         const { data: apartment, error: aptError } = await supabase
           .from("apartments")
-          .select("id")
+          .select("id, price")
           .eq("floor_id", apt.floor_id)
           .eq("number", apt.apartment_number)
           .single();
 
         if (apartment && !aptError) {
-          newApartmentIds.push(apartment.id);
+          const basePrice = apartment.price || 0;
+          const discountPercentage = Number((apt as any).discount) || 0;
+          const discountedPrice = basePrice - (basePrice * discountPercentage / 100);
+
+          newApartmentDetails.push({
+            id: apartment.id,
+            discount_percentage: discountPercentage,
+            discounted_price: Math.round(discountedPrice),
+          });
         } else {
           console.warn(
             `⚠️ Apartment not found for floor ${apt.floor_id}, number ${apt.apartment_number}`
@@ -325,12 +356,14 @@ export const updateClient = async (
         }
       }
 
-      if (newApartmentIds.length > 0) {
-        // Insert into intermediate table
-        const intermediateRecords = newApartmentIds.map((aptId) => ({
+      if (newApartmentDetails.length > 0) {
+        // Insert into intermediate table with discount_percentage and discounted_price
+        const intermediateRecords = newApartmentDetails.map((apt) => ({
           client_membership: membership_number,
-          apartment_id: aptId,
+          apartment_id: apt.id,
           alloted_date: today,
+          discount_percentage: apt.discount_percentage,
+          discounted_price: apt.discounted_price,
         }));
 
         const { error: intermediateError } = await supabase
@@ -343,6 +376,7 @@ export const updateClient = async (
         }
 
         // Update apartment status to 'sold'
+        const newApartmentIds = newApartmentDetails.map((apt) => apt.id);
         const { error: statusError } = await supabase
           .from("apartments")
           .update({ status: "sold" })
@@ -355,7 +389,28 @@ export const updateClient = async (
       }
     }
 
-    // Step 3: Handle apartment removals
+    // Step 3: Handle apartment discount updates
+    if (apartmentChanges?.apartmentsToUpdate && apartmentChanges.apartmentsToUpdate.length > 0) {
+      for (const apt of apartmentChanges.apartmentsToUpdate) {
+        const discountedPrice = Math.round(apt.price - (apt.price * apt.discount / 100));
+
+        const { error: updateError } = await supabase
+          .from("intermediate")
+          .update({
+            discount_percentage: apt.discount,
+            discounted_price: discountedPrice,
+          })
+          .eq("client_membership", membership_number)
+          .eq("apartment_id", apt.apartment_id);
+
+        if (updateError) {
+          console.error("❌ Error updating apartment discount in intermediate:", updateError);
+          throw updateError;
+        }
+      }
+    }
+
+    // Step 4: Handle apartment removals
     if (apartmentChanges?.apartmentIdsToRemove && apartmentChanges.apartmentIdsToRemove.length > 0) {
       // Delete from intermediate table
       const { error: deleteError } = await supabase
