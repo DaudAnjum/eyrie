@@ -18,13 +18,11 @@ import { useEffect, useState } from "react";
 interface ApartmentModalProps {
   apartment: Apartment;
   onClose: () => void;
-  onContact?: (apartment?: Apartment) => void;
 }
 
 const ApartmentModal: React.FC<ApartmentModalProps> = ({
   apartment,
   onClose,
-  onContact,
 }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -80,12 +78,6 @@ const ApartmentModal: React.FC<ApartmentModalProps> = ({
     }
   };
 
-  const handleContact = () => {
-    if (onContact) return onContact(apartment);
-    const el = document.getElementById("contact");
-    if (el) el.scrollIntoView({ behavior: "smooth" });
-    else window.location.href = "#contact";
-  };
 
   const isCommercial = ["shop", "office"].includes(
     apartment.type.toLowerCase()
@@ -192,115 +184,74 @@ const ApartmentModal: React.FC<ApartmentModalProps> = ({
               </div>
 
               {/* Payment Options */}
-              {!isCommercial && (
-                <div>
-                  <h3 className="text-xl font-semibold mb-4">
-                    Payment Options
-                  </h3>
+              <div>
+                <h3 className="text-xl font-semibold mb-4">
+                  Payment Options
+                </h3>
 
-                  {Array.isArray(apartment.installmentOptions) ? (
-                    <div className="space-y-4">
-                      {(apartment.installmentOptions as any[]).map(
-                        (opt, idx) => (
-                          <div
-                            key={idx}
-                            className="border border-gray-200 rounded-lg p-4"
-                          >
-                            <h4 className="font-semibold mb-2">
-                              {opt.duration} Month Plan
-                            </h4>
-                            <div className="space-y-2 text-sm">
-                              <div className="flex justify-between">
-                                <span>Down Payment:</span>
-                                <span className="font-medium">
-                                  {formatPrice(opt.downPayment)}
-                                </span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span>Monthly Payment:</span>
-                                <span className="font-medium">
-                                  {formatPrice(opt.monthlyAmount)}
-                                </span>
-                              </div>
-                              <div className="flex justify-between pt-2 border-t border-gray-200">
-                                <span className="font-semibold">Total:</span>
-                                <span className="font-semibold">
-                                  {formatPrice(
-                                    (toNumber(opt.downPayment) ?? 0) +
-                                      (toNumber(opt.monthlyAmount) ?? 0) *
-                                        (opt.duration ?? 0)
-                                  )}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  ) : apartment.installmentOptions ? (
-                    <div className="border border-gray-200 rounded-lg p-4">
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span>Booking:</span>
-                          <span className="font-medium">
-                            {formatPrice(
-                              (apartment.installmentOptions as any).booking
-                            )}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Allotment Confirmation:</span>
-                          <span className="font-medium">
-                            {formatPrice(
-                              (apartment.installmentOptions as any)
-                                .allotmentConfirmation
-                            )}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Monthly Installments:</span>
-                          <span className="font-medium">
-                            {formatPrice(
-                              (apartment.installmentOptions as any)
-                                .monthlyInstallments
-                            )}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Half Yearly:</span>
-                          <span className="font-medium">
-                            {formatPrice(
-                              (apartment.installmentOptions as any).halfYearly
-                            )}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>On Possession:</span>
-                          <span className="font-medium">
-                            {formatPrice(
-                              (apartment.installmentOptions as any).onPossession
-                            )}
-                          </span>
-                        </div>
-                        <div className="flex justify-between pt-2 border-t border-gray-200">
-                          <span className="font-semibold">Total:</span>
-                          <span className="font-semibold">
-                            {formatPrice(
-                              (apartment.installmentOptions as any).total
-                            )}
-                          </span>
-                        </div>
+                {apartment.installmentOptions ? (
+                  <div className="border border-gray-200 rounded-lg p-4">
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Booking:</span>
+                        <span className="font-medium">
+                          {formatPrice(
+                            (apartment.installmentOptions as any).booking
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Allotment Confirmation:</span>
+                        <span className="font-medium">
+                          {formatPrice(
+                            (apartment.installmentOptions as any)
+                              .allotmentConfirmation
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Monthly Installments:</span>
+                        <span className="font-medium">
+                          {formatPrice(
+                            (apartment.installmentOptions as any)
+                              .monthlyInstallments
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Half Yearly:</span>
+                        <span className="font-medium">
+                          {formatPrice(
+                            (apartment.installmentOptions as any).halfYearly
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>On Possession:</span>
+                        <span className="font-medium">
+                          {formatPrice(
+                            (apartment.installmentOptions as any).onPossession
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex justify-between pt-2 border-t border-gray-200">
+                        <span className="font-semibold">Total:</span>
+                        <span className="font-semibold">
+                          {formatPrice(
+                            (apartment.installmentOptions as any).total
+                          )}
+                        </span>
                       </div>
                     </div>
-                  ) : (
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <p className="text-gray-600">
-                        Contact us for payment options and financing details.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
+                  </div>
+                ) : (
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <p className="text-gray-600">
+                      Contact us for payment options and financing details.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Image Viewer */}
