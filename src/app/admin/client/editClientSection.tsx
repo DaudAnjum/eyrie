@@ -838,9 +838,9 @@ export default function EditClientSection({
               {Array.isArray(formData.documents) &&
               formData.documents.length > 0
                 ? `${formData.documents.length} ${
-                    formData.documents.length === 1 ? "image" : "images"
+                    formData.documents.length === 1 ? "document" : "documents"
                   }`
-                : "No images"}
+                : "No Documents"}
             </span>
           </div>
 
@@ -960,9 +960,9 @@ export default function EditClientSection({
               {Array.isArray(formData.relevent_notice) &&
               formData.relevent_notice.length > 0
                 ? `${formData.relevent_notice.length} ${
-                    formData.relevent_notice.length === 1 ? "image" : "images"
+                    formData.relevent_notice.length === 1 ? "document" : "documents"
                   }`
-                : "No images"}
+                : "No Documents"}
             </span>
           </div>
 
