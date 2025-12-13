@@ -361,3 +361,30 @@ export const getLastPaidDateForCategory = (
 
   return categoryPayments[0]?.paid_date || null;
 };
+
+/**
+ * ================================
+ * UPDATE NOTES FOR APARTMENT
+ * ================================
+ */
+export const updateNotesForApartment = async (
+  clientMembership: string,
+  apartmentId: string,
+  notes: string
+) => {
+  try {
+    // Update notes for all payments related to this apartment
+    const { data, error } = await supabase
+      .from("payments")
+      .update({ notes })
+      .eq("client_membership", clientMembership)
+      .eq("apartment_id", apartmentId)
+      .select();
+
+    if (error) throw error;
+    return { success: true, data };
+  } catch (error: any) {
+    console.error("Error updating notes:", error.message);
+    return { success: false, error: error.message };
+  }
+};

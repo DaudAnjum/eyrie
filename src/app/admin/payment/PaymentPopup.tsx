@@ -14,6 +14,7 @@ import {
   getNextPayableInstallment,
   getAllotmentPaidDate,
   getLastPaidDateForCategory,
+  updateNotesForApartment,
 } from "./paymentFunctions";
 
 interface Apartment {
@@ -51,6 +52,7 @@ export default function PaymentPopup({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notes, setNotes] = useState("");
+  const [initialNotes, setInitialNotes] = useState("");
 
   // Payment form state for each category
   const [paymentForms, setPaymentForms] = useState<{
@@ -79,6 +81,10 @@ export default function PaymentPopup({
     );
     if (result.success) {
       setPayments(result.data);
+      // Load notes from the first payment (all payments have the same notes)
+      const existingNotes = result.data.length > 0 ? result.data[0].notes || "" : "";
+      setNotes(existingNotes);
+      setInitialNotes(existingNotes);
     }
     setLoading(false);
   };
@@ -175,6 +181,28 @@ export default function PaymentPopup({
 
   const handlePrintAll = () => {
     window.print();
+  };
+
+  const handleSave = async () => {
+    // Check if notes have changed
+    if (notes !== initialNotes) {
+      setSaving(true);
+      const result = await updateNotesForApartment(
+        client.membership_number,
+        apartment.id,
+        notes
+      );
+
+      if (!result.success) {
+        alert("Failed to save notes: " + result.error);
+        setSaving(false);
+        return;
+      }
+      setSaving(false);
+    }
+
+    // Close the popup
+    onClose();
   };
 
   const renderPaymentRow = (
@@ -489,6 +517,24 @@ export default function PaymentPopup({
               </div>
             </>
           )}
+        </div>
+
+        {/* Footer with Save and Cancel buttons */}
+        <div className="flex items-center justify-end gap-3 p-4 border-t bg-gray-50">
+          <button
+            onClick={onClose}
+            disabled={saving}
+            className="px-4 py-2 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-4 py-2 bg-[#98786d] text-white rounded text-sm hover:bg-[#7d645b] disabled:opacity-50"
+          >
+            {saving ? "Saving..." : "Save"}
+          </button>
         </div>
       </div>
     </div>

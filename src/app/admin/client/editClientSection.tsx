@@ -826,7 +826,7 @@ export default function EditClientSection({
               Upload New
               <input
                 type="file"
-                accept="image/*"
+                accept="image/*,.pdf"
                 multiple
                 onChange={(e) => handleFileChange(e, "documents")}
                 className="hidden"
@@ -948,7 +948,7 @@ export default function EditClientSection({
               Upload New
               <input
                 type="file"
-                accept="image/*"
+                accept="image/*,.pdf"
                 multiple
                 onChange={(e) => handleFileChange(e, "relevent_notice")}
                 className="hidden"

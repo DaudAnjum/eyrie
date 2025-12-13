@@ -531,7 +531,7 @@ export default function CreateClientSection({
           </label>
           <input
             type="file"
-            accept="image/*"
+            accept="image/*,.pdf"
             name="documents"
             multiple
             onChange={(e) => handleFileChange(e, "documents")}
@@ -546,7 +546,7 @@ export default function CreateClientSection({
           </label>
           <input
             type="file"
-            accept="image/*"
+            accept="image/*,.pdf"
             name="relevent_notice"
             multiple
             onChange={(e) => handleFileChange(e, "relevent_notice")}
